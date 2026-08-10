@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Open_Sans } from "next/font/google";
+import { Inter, Schibsted_Grotesk } from "next/font/google";
 import "./globals.css";
 
 const inter = Inter({
@@ -8,9 +8,12 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
-const openSans = Open_Sans({
-  variable: "--font-open-sans",
-  weight: ["600", "700"],
+/* Headline-Fallback: Schibsted Grotesk steht der lizenzierten Selecta am
+   nächsten (charaktervolle Grotesk mit Vor-Helvetica-Details) — beim Build
+   selbst gehostet, läuft also auch offline auf dem Präsentationsrechner. */
+const schibsted = Schibsted_Grotesk({
+  variable: "--font-display",
+  weight: ["600"],
   subsets: ["latin"],
 });
 
@@ -22,7 +25,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="de" className={`${inter.variable} ${openSans.variable}`}>
+    <html lang="de" className={`${inter.variable} ${schibsted.variable}`}>
       <body>{children}</body>
     </html>
   );

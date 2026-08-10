@@ -35,6 +35,10 @@ export default function IconGlyphs() {
           <path d="M12 4.4 A4.6 4.6 0 1 0 12 11.6 M3.2 6.8 H9.4 M3.2 9.2 H8.8"
             fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </symbol>
+        <symbol id="g-org" viewBox="0 0 16 16">
+          <path d="M6.5 2.8 H9.5 V5.4 H6.5 Z M2.8 10.6 H5.8 V13.2 H2.8 Z M10.2 10.6 H13.2 V13.2 H10.2 Z M8 5.4 V8 M4.3 10.6 V8 H11.7 V10.6"
+            fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </symbol>
       </defs>
     </svg>
   );

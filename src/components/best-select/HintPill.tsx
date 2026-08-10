@@ -1,9 +1,21 @@
+import type { MouseEvent } from 'react';
+
 /* Hinweis-Pille unten links: Nested CTA — der Pfeil sitzt in eigenem Kreis
-   bündig am inneren Rand. Am letzten Schritt wechselt das Glyph auf Neustart. */
-export default function HintPill({ restart }: { restart: boolean }) {
+   bündig am inneren Rand. Am letzten Schritt wechselt das Glyph auf Neustart.
+   Ein echter <button>: fokussierbar, Enter/Leertaste funktionieren, und am
+   Finale ist er der einzige Klickweg zum Neustart (die Bühne ist dort inert). */
+export default function HintPill({ restart, onAdvance }: {
+  restart: boolean;
+  onAdvance: (e: MouseEvent<HTMLButtonElement>) => void;
+}) {
   return (
     <div className="meta" id="hint">
-      <span className={'hint-pill' + (restart ? ' is-restart' : '')} id="hint-pill">
+      <button
+        type="button"
+        className={'hint-pill' + (restart ? ' is-restart' : '')}
+        id="hint-pill"
+        onClick={onAdvance}
+      >
         <span id="hint-label">
           {restart ? 'Klicken für Neustart' : 'Klicken für den nächsten Schritt'}
         </span>
@@ -17,7 +29,7 @@ export default function HintPill({ restart }: { restart: boolean }) {
             <path d="M13 8a5 5 0 1 1-1.6-3.7" /><path d="M13 2.6V5h-2.4" />
           </svg>
         </span>
-      </span>
+      </button>
     </div>
   );
 }

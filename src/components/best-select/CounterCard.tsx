@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, type CSSProperties } from 'react';
-import { CATS, STEP_RADAR } from '@/lib/best-select/constants';
+import { STEP_CATS, STEP_FINAL, STEP_RADAR } from '@/lib/best-select/constants';
 import { countUp, fmt, tx } from '@/lib/best-select/animate';
 import type { View } from './BestSelect';
 
@@ -17,11 +17,13 @@ export default function CounterCard({ view }: { view: View }) {
 
   useEffect(() => {
     const { step, inst, dir } = view;
-    const on = step >= 1;
-    /* Radar-Phase: zurücknehmen, aber lesbar bleiben — unter ~0.72 fallen die
-       Zeilenbeschriftungen auf dem Glas unter AA-Kontrast */
-    tx(cardRef.current, { opacity: on ? (step >= STEP_RADAR ? 0.72 : 1) : 0 }, { duration: inst ? 0 : 0.9 });
-    CATS.forEach((cat, i) => {
+    /* Ab der Trichterphase verabschiedet sich die Marktleiter — die Bühne
+       gehört den Unternehmens-Karten */
+    const on = step >= 1 && step <= STEP_FINAL;
+    /* Radar-Phase: zurücknehmen, aber lesbar bleiben — 0.78 hält die
+       Zeilenbeschriftungen mit Reserve über dem AA-Kontrast */
+    tx(cardRef.current, { opacity: on ? (step >= STEP_RADAR ? 0.78 : 1) : 0 }, { duration: inst ? 0 : 0.9 });
+    STEP_CATS.forEach((cat, i) => {
       const row = rowRefs.current[i], num = numRefs.current[i];
       if (!row || !num) return;
       const vis = step >= i + 1;
@@ -40,12 +42,12 @@ export default function CounterCard({ view }: { view: View }) {
     });
   }, [view]);
 
-  const rows = Math.max(1, Math.min(view.step, CATS.length));
+  const rows = Math.max(1, Math.min(view.step, STEP_CATS.length));
   return (
     <div id="counter" ref={cardRef} aria-hidden="true"
       style={{ '--rows': rows } as CSSProperties}>
       <div className="core">
-        {CATS.map((cat, i) => (
+        {STEP_CATS.map((cat, i) => (
           <div className="crow" key={cat.key} ref={el => { rowRefs.current[i] = el; }}>
             <span className="clabel">
               <span className={'cico ci-' + cat.key}>

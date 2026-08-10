@@ -5,12 +5,13 @@
    reine Funktion des View-Zustands {step, inst, dir}. */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { LAST, LEAD, N_CATS, ROT, STEP_FINAL, STEP_RADAR, WIN_ANIM } from '@/lib/best-select/constants';
+import { LAST, LEAD, N_CATS, ROT, STEP_FINAL, STEP_FONDS, STEP_RADAR, WIN_ANIM } from '@/lib/best-select/constants';
 import { bump, reduced, tx } from '@/lib/best-select/animate';
 import Stage from './Stage';
 import IconGlyphs from './IconGlyphs';
 import IconsLayer from './IconsLayer';
 import Radar from './Radar';
+import FunnelStage from './FunnelStage';
 import CounterCard from './CounterCard';
 import TextRail from './TextRail';
 import HintPill from './HintPill';
@@ -33,9 +34,14 @@ function lockFor(n: number, dir: number): number {
   if (n === STEP_RADAR) return (LEAD + ROT + WIN_ANIM) * 1000;
                                    /* bis der letzte Gewinner (Nordwesten) steht —
                                       vorher wäre die Aussage des Schritts amputiert */
-  if (n === N_CATS) return 2600;   /* Fonds-Kaskade + 10.000er-Zähler */
+  if (n === STEP_FONDS) return 2600;     /* Fonds-Kaskade */
   if (n >= 1 && n < N_CATS) return 1900;
   if (n === STEP_FINAL) return 1600;
+  const f = n - STEP_FINAL;        /* Trichterphase */
+  if (f === 1) return 3200;              /* Prüfstrom: Aufstieg 1.2s + Strom bis ~3.7s */
+  if (f === 2) return 2400;              /* Drei fallen aus dem Auslauf */
+  if (f === 5) return 2600;              /* Tarif-Einsaugen */
+  if (f === 6) return 2900;              /* Fall + Aufstieg ins Zentrum */
   return 700;
 }
 
@@ -78,7 +84,19 @@ export default function BestSelect() {
     setView(v => ({ step, inst: false, dir, n: v.n + 1 }));
   }, [lock]);
 
-  /* Tastatur: ←/Backspace/PageUp zurück · →/Leertaste/Enter/PageDown weiter */
+  /* Zwischenfrage im Termin: Esc beendet die laufende Choreografie sofort in
+     ihren Endzustand und löst die Sperre — der Berater kann sprechen, die
+     Bühne wartet. Deterministisch: derselbe Endzustand wie nach dem Ablauf. */
+  const settle = useCallback(() => {
+    if (!busyRef.current) return;
+    busyRef.current = false;
+    stageRef.current?.classList.remove('busy');
+    bump();                                       /* later()/countUp verfallen */
+    setView(v => ({ step: v.step, inst: true, dir: 1, n: v.n + 1 }));
+  }, []);
+
+  /* Tastatur: ←/Backspace/PageUp zurück · →/Leertaste/Enter/PageDown weiter ·
+     Esc settelt die laufende Choreografie */
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'Enter' || e.key === 'PageDown') {
@@ -87,13 +105,23 @@ export default function BestSelect() {
       if (e.key === 'ArrowLeft' || e.key === 'Backspace' || e.key === 'PageUp') {
         e.preventDefault(); go(viewRef.current.step - 1);
       }
+      if (e.key === 'Escape') {
+        e.preventDefault(); settle();
+      }
     }
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [go]);
+  }, [go, settle]);
+
+  /* Finale: Bühnen-Klicks sind inert (ein Streifschuss darf den Schlussmoment
+     nicht wegwischen) — der Neustart läuft nur über die Pille oder Tastatur */
+  useEffect(() => {
+    stageRef.current?.classList.toggle('final', view.step === LAST);
+  }, [view]);
 
   /* ?step=N springt direkt zu einem Schritt (Probe / Screenshot);
-     &play spielt die Choreografie dieses Schritts ab statt sofort zu landen;
+     &play spielt die Choreografie dieses Schritts ab statt sofort zu landen —
+     mit derselben Sperre wie im Termin, damit die Probe die echte Mechanik hat;
      ?debug=1 blendet das Polygon-Overlay ein */
   useEffect(() => {
     const search = window.location.search;
@@ -103,9 +131,22 @@ export default function BestSelect() {
       const step = Math.min(LAST, +jump);
       const play = /[?&]play/.test(search);
       bump();
+      if (play) lock(lockFor(step, 1));
       setView(v => ({ step, inst: !play, dir: 1, n: v.n + 1 }));
     }
-  }, []);
+  }, [lock]);
+
+  /* Der aktuelle Schritt steht immer in der URL (replaceState, keine History-
+     Einträge): ein F5 mitten im Termin landet wieder auf demselben Schritt,
+     und jeder Moment ist als Link teilbar. &play wird dabei verbraucht. */
+  useEffect(() => {
+    if (view.n === 0) return;                    /* Mount: erst der Deep-Link */
+    const url = new URL(window.location.href);
+    if (view.step === 0) url.searchParams.delete('step');
+    else url.searchParams.set('step', String(view.step));
+    url.searchParams.delete('play');
+    window.history.replaceState(null, '', url);
+  }, [view.step, view.n]);
 
   /* Sofort-Render: für einen Frame alle CSS-Übergänge kappen */
   useEffect(() => {
@@ -149,14 +190,25 @@ export default function BestSelect() {
   }, []);
 
   return (
-    <div id="viewport" ref={viewportRef} onClick={() => go(viewRef.current.step + 1)}>
+    <div
+      id="viewport"
+      ref={viewportRef}
+      onClick={() => {
+        if (viewRef.current.step === LAST) return;   /* Finale: nur die Pille startet neu */
+        go(viewRef.current.step + 1);
+      }}
+    >
       <Stage ref={stageRef}>
         <IconGlyphs />
         <IconsLayer view={view} />
         <Radar view={view} />
+        <FunnelStage view={view} />
         <CounterCard view={view} />
         <TextRail view={view} />
-        <HintPill restart={view.step === LAST} />
+        <HintPill
+          restart={view.step === LAST}
+          onAdvance={e => { e.stopPropagation(); go(viewRef.current.step + 1); }}
+        />
         <StepCounter step={view.step} />
         {debug && <DebugOverlay />}
       </Stage>

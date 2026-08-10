@@ -1,6 +1,9 @@
-/* Daten & Choreografie-Konstanten — 1:1 aus best-select-v3.html portiert. */
+/* Daten & Choreografie-Konstanten — 1:1 aus best-select-v3.html portiert;
+   Trichterphase (Schritte 11–16) aus Assets.html weiterentwickelt. */
 
-export type CatKey = 'bsp' | 'vv' | 'spk' | 'vers' | 'ibt' | 'stb' | 'bank' | 'fonds';
+import { CRIT_C, CRIT_P, PRODUCTS, WINNERS, WIN_COL } from './funnel';
+
+export type CatKey = 'bsp' | 'vv' | 'spk' | 'vers' | 'ibt' | 'stb' | 'bank' | 'fonds' | 'unt';
 
 export interface Cat {
   key: CatKey;
@@ -12,28 +15,35 @@ export interface Cat {
   pad: number;   /* halber Symbolradius: so weit muss ringsum noch Deutschland liegen */
   stag: number;  /* Auftritts-Stagger in s je Symbol · 0 = zufällig (Fonds-Regen) */
   glyph: string;
+  winnerOnly?: true;  /* kein eigener Schritt, keine Zählerzeile — nur der Gewinner-Badge im Radar */
 }
 
 /* 1 Symbol ≈ div reale Anbieter/Produkte (38→4 · 46→5 · 341→17 · 522→26 ·
-   700→10 · 1171→14 · 1400→18 · 10000→282). Die fünf neuen Kategorien sind
-   aus dem Fonds-Kontingent herausgeschnitten (früher 333 Punkte) — die
-   Gesamtzahl der Symbole bleibt exakt 376. Reihenfolge = Erzählreihenfolge:
-   aufsteigend nach Marktgröße, der Fondsmarkt bleibt Maximum und Finale.
+   700→10 · 1171→14 · 1400→18 · 10000→282 · 3,4 Mio→17). Reihenfolge =
+   Erzählreihenfolge: aufsteigend nach Marktgröße; der Fondsmarkt bleibt das
+   Produkt-Maximum. Die Unternehmen sind kartenexklusiv (winnerOnly): kein
+   eigener Schritt, keine Zählerzeile — total/div bleiben als Platzierungs-
+   Input (3,4 Mio → 17 Symbole, aus denen der neunte Gewinner gewählt wird).
    Bei Rucklern auf schwacher Hardware die div-Werte erhöhen. */
 export const CATS: Cat[] = [
-  { key: 'bsp',   label: 'Bausparkassen',            total: 38,    div: 10,   seed: 404, min: 50, pad: 15, stag: 0.18,  glyph: '#g-home'    },
-  { key: 'vv',    label: 'Vermögensverwalter',       total: 46,    div: 10,   seed: 505, min: 50, pad: 15, stag: 0.15,  glyph: '#g-case'    },
-  { key: 'spk',   label: 'Sparkassen',               total: 341,   div: 20,   seed: 101, min: 50, pad: 15, stag: 0.06,  glyph: '#g-bank'    },
-  { key: 'vers',  label: 'Versicherungsunternehmen', total: 522,   div: 20,   seed: 202, min: 44, pad: 15, stag: 0.045, glyph: '#g-shield'  },
-  { key: 'ibt',   label: 'Immobilien-Bauträger',     total: 700,   div: 70,   seed: 606, min: 44, pad: 15, stag: 0.09,  glyph: '#g-tower'   },
-  { key: 'stb',   label: 'Steuerberater',            total: 1171,  div: 85,   seed: 707, min: 44, pad: 15, stag: 0.07,  glyph: '#g-percent' },
-  { key: 'bank',  label: 'Banken & Kreditinstitute', total: 1400,  div: 78,   seed: 808, min: 44, pad: 15, stag: 0.055, glyph: '#g-euro'    },
-  { key: 'fonds', label: 'Investmentfonds & ETFs',   total: 10000, div: 35.5, seed: 303, min: 22, pad: 10, stag: 0,     glyph: '#g-chart'   },
+  { key: 'bsp',   label: 'Bausparkassen',            total: 38,      div: 10,     seed: 404, min: 50, pad: 15, stag: 0.18,  glyph: '#g-home'    },
+  { key: 'vv',    label: 'Vermögensverwalter',       total: 46,      div: 10,     seed: 505, min: 50, pad: 15, stag: 0.15,  glyph: '#g-case'    },
+  { key: 'spk',   label: 'Sparkassen',               total: 341,     div: 20,     seed: 101, min: 50, pad: 15, stag: 0.06,  glyph: '#g-bank'    },
+  { key: 'vers',  label: 'Versicherungsunternehmen', total: 522,     div: 20,     seed: 202, min: 44, pad: 15, stag: 0.045, glyph: '#g-shield'  },
+  { key: 'ibt',   label: 'Immobilien-Bauträger',     total: 700,     div: 70,     seed: 606, min: 44, pad: 15, stag: 0.09,  glyph: '#g-tower'   },
+  { key: 'stb',   label: 'Steuerberater',            total: 1171,    div: 85,     seed: 707, min: 44, pad: 15, stag: 0.07,  glyph: '#g-percent' },
+  { key: 'bank',  label: 'Banken & Kreditinstitute', total: 1400,    div: 78,     seed: 808, min: 44, pad: 15, stag: 0.055, glyph: '#g-euro'    },
+  { key: 'fonds', label: 'Investmentfonds & ETFs',   total: 10000,   div: 35.5,   seed: 303, min: 22, pad: 10, stag: 0,     glyph: '#g-chart'   },
+  { key: 'unt',   label: 'Unternehmen',              total: 3400000, div: 200000, seed: 909, min: 44, pad: 15, stag: 0.07,  glyph: '#g-org', winnerOnly: true },
 ];
 
-export const N_CATS = CATS.length;
-export const STEP_RADAR = N_CATS + 1;   /* Schritt 09: der Radar entscheidet */
-export const STEP_FINAL = N_CATS + 2;   /* Schritt 10: Best Select */
+/* Nur diese Kategorien tragen Schritte, Zählerzeilen und Auftrittsklassen */
+export const STEP_CATS = CATS.filter(c => !c.winnerOnly);
+
+export const N_CATS = STEP_CATS.length;
+export const STEP_FONDS = STEP_CATS.findIndex(c => c.key === 'fonds') + 1;
+export const STEP_RADAR = N_CATS + 1;   /* Schritt 9: der Radar entscheidet */
+export const STEP_FINAL = N_CATS + 2;   /* Schritt 10: Best Select auf der Karte */
 
 export const HUB = { x: 805, y: 430 };   /* Radar-Nabe ≈ geographische Mitte */
 export const BEAM_R = 470;               /* deckt den entferntesten Umrisspunkt (~450px) */
@@ -50,21 +60,32 @@ export interface StepText {
   n?: string;
 }
 
-/* Nur der Titel trägt eine Unterzeile — der Berater spricht, die Bühne zeigt */
+/* Nur der Titel trägt eine Unterzeile — der Berater spricht, die Bühne zeigt.
+   Die Verdichtungs-Fußnote steht ab dem ersten Evidenzmoment: die Zahl 38
+   neben vier Symbolen darf keine offene Frage lassen. */
+const SYM = 'Darstellung symbolisch verdichtet — jedes Symbol steht für viele Anbieter.';
+const ANON = 'Darstellung anonymisiert — die Namen nennen wir im persönlichen Gespräch.';
 export const T: StepText[] = [
   { k: 'Auswahlprozess',                   h: 'Best Select', s: 'Der ganze Markt. Eine Empfehlung.' },
-  { k: 'Schritt 01 · Bausparkassen',       h: 'Jede Bausparkasse im Blick' },
-  { k: 'Schritt 02 · Vermögensverwalter',  h: 'Jeder Vermögensverwalter im Blick' },
-  { k: 'Schritt 03 · Sparkassen',          h: 'Jede Sparkasse im Blick' },
-  { k: 'Schritt 04 · Versicherer',         h: 'Jeder Versicherer im Blick' },
-  { k: 'Schritt 05 · Bauträger',           h: 'Jeder Immobilien-Bauträger im Blick' },
-  { k: 'Schritt 06 · Steuerberater',       h: 'Jeder Steuerberater im Blick' },
-  { k: 'Schritt 07 · Banken',              h: 'Jedes Kreditinstitut im Blick' },
+  { k: 'Schritt 01 · Bausparkassen',       h: 'Jede Bausparkasse im Blick', n: SYM },
+  { k: 'Schritt 02 · Vermögensverwalter',  h: 'Jeder Vermögensverwalter im Blick', n: SYM },
+  { k: 'Schritt 03 · Sparkassen',          h: 'Jede Sparkasse im Blick', n: SYM },
+  { k: 'Schritt 04 · Versicherer',         h: 'Jeder Versicherer im Blick', n: SYM },
+  { k: 'Schritt 05 · Bauträger',           h: 'Jeder Immobilien-Bauträger im Blick', n: SYM },
+  { k: 'Schritt 06 · Steuerberater',       h: 'Jeder Steuerberater im Blick', n: SYM },
+  { k: 'Schritt 07 · Banken',              h: 'Jedes Kreditinstitut im Blick', n: SYM },
   { k: 'Schritt 08 · Fonds & ETFs',        h: 'Der ganze Fondsmarkt',
     n: 'Darstellung symbolisch verdichtet — jedes Symbol steht für viele Anbieter bzw. Produkte.' },
   { k: 'Schritt 09 · Filter',              h: 'Der Weitblick-Radar' },
   { k: 'Schritt 10 · Best Select',         h: 'Das Beste bleibt',
     n: 'Auswahl anonymisiert — die Namen nennen wir im persönlichen Gespräch.' },
+  /* ---- Trichterphase: der ganze Markt im Best-Select-Prinzip ---- */
+  { k: 'Schritt 11 · Prüfung',             h: 'Jedes Unternehmen im Test' },
+  { k: 'Schritt 12 · Ergebnis',            h: 'Drei bleiben übrig', n: ANON },
+  { k: 'Schritt 13 · Portfolio',           h: 'Blick in die Häuser' },
+  { k: 'Schritt 14 · Tarife',              h: 'Neun Tarife' },
+  { k: 'Schritt 15 · Filter',              h: 'Derselbe Maßstab' },
+  { k: 'Schritt 16 · Best Select',         h: 'Ein Tarif bleibt' },
 ];
 
 export const LAST = T.length - 1;
@@ -80,6 +101,17 @@ export function evidenceFor(step: number): string {
   if (step === 7) return 'Dazu kommen 1.400 Banken und Kreditinstitute.';
   if (step === 8) return 'Und über 10.000 Investmentfonds und ETFs.';
   if (step === STEP_RADAR) return 'Der Weitblick-Radar prüft den gesamten Markt nach einem Maßstab — nur die Besten bleiben.';
-  if (step === STEP_FINAL) return 'Best Select: acht Empfehlungen aus dem ganzen Markt, geprüft nach einem Maßstab.';
+  if (step === STEP_FINAL) return 'Best Select: neun Empfehlungen aus dem ganzen Markt, geprüft nach einem Maßstab.';
+  const f = step - STEP_FINAL;
+  if (f === 1) return 'Der Trichter prüft jedes Unternehmen am Markt nach fünf Kriterien: ' + CRIT_C.join(', ') + '.';
+  if (f === 2) return 'Übrig bleiben: ' + WINNERS.map(w => w.n).join(', ') + '.';
+  if (f === 4) {
+    const tarife = (col: number) => PRODUCTS.filter(p => p.col === col)
+      .map(p => p.n + ' ' + p.v + ' von 3').join(', ');
+    return WINNERS.map((w, i) => w.n + ': ' + tarife(i)).join('. ') + '.';
+  }
+  if (f === 5) return 'Die fünf Tarif-Kriterien: ' + CRIT_P.join(', ') + '.';
+  if (f === 6) return 'Die Empfehlung: ' + WINNERS[WIN_COL].n + ', Tarif Premium — 3 von 3. ' +
+    'Alle fünf Kriterien erfüllt: ' + CRIT_P.join(', ') + '.';
   return '';
 }

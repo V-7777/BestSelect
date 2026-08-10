@@ -14,7 +14,7 @@ export interface PlacedIcon {
   win: boolean;
 }
 
-function mulberry32(seed: number) {
+export function mulberry32(seed: number) {
   return function () {
     seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
     let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
@@ -48,7 +48,7 @@ function inland(x: number, y: number, m: number): boolean {
 /* Textschiene und Zähler-Karte bleiben frei — beide liegen über dem Nordwesten */
 const RESERVED = [
   { x0: 76, y0: 36, x1: 530, y1: 274 },    /* Kicker · Headline · Unterzeile */
-  { x0: 88, y0: 252, x1: 472, y1: 600 },   /* Zähler-Karte (8 Zeilen) */
+  { x0: 88, y0: 252, x1: 472, y1: 606 },   /* Zähler-Karte (8 Zeilen) */
 ];
 
 function free(x: number, y: number): boolean {
@@ -72,11 +72,12 @@ function buildIcons(): PlacedIcon[] {
       if (ok) {
         for (let i = 0; i < icons.length && ok; i++) {
           const p = icons[i];
-          /* Fonds-Punkte prüfen gegen Badges nur 32px, untereinander minD;
-             Badges prüfen gegen alles Bisherige mit minD */
-          const need = (cat.key === 'fonds')
-            ? (p.cat === 'fonds' ? minD : 32)
-            : minD;
+          /* Fonds-Punkte und Badges brauchen zueinander nur 32px (die kleinen
+             Punkte liegen unter den Badges auf z1), Badges untereinander und
+             Punkte untereinander den vollen minD. Symmetrisch, weil die
+             Unternehmen als neunte Kategorie NACH dem Fonds-Regen platziert
+             werden — sonst fände ein 44px-Abstand zu 282 Punkten keinen Platz. */
+          const need = (cat.key === 'fonds') !== (p.cat === 'fonds') ? 32 : minD;
           const dx = p.x - x, dy = p.y - y;
           if (dx * dx + dy * dy < need * need) ok = false;
         }
@@ -105,10 +106,10 @@ function buildIcons(): PlacedIcon[] {
     .forEach(p => { icons.splice(icons.indexOf(p), 1); });
 
   /* Gewinner: deterministisch, weit gestreut (Greedy-Farthest-Point) — genau
-     eine Empfehlung je Kategorie, acht insgesamt. Große Pools zuerst: der
+     eine Empfehlung je Kategorie, neun insgesamt. Große Pools zuerst: der
      erste liegt nah an der Nabe, jeder weitere maximiert den Mindestabstand
      zu allen bisherigen Gewinnern; die kleinen Kategorien wählen zuletzt. */
-  const order: CatKey[] = ['vers', 'spk', 'fonds', 'bank', 'stb', 'ibt', 'vv', 'bsp'];
+  const order: CatKey[] = ['vers', 'spk', 'fonds', 'bank', 'unt', 'stb', 'ibt', 'vv', 'bsp'];
   const chosen: PlacedIcon[] = [];
   order.forEach(function (catKey) {
     const pool = icons.filter(function (p) {
