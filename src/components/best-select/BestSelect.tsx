@@ -26,8 +26,8 @@ export interface View {
 }
 
 /* Sperre folgt der laufenden Choreografie — ein zweiter Klick kann keinen
-   Erzählmoment amputieren; der Radar darf bewusst früh Richtung Finale
-   verlassen werden, sobald die Auslese lesbar ist */
+   Erzählmoment amputieren. Der Radar sperrt bis der letzte Gewinner steht:
+   Vorlauf + voller Umlauf + Gewinner-Flip. */
 function lockFor(n: number, dir: number): number {
   if (dir < 0) return 900;         /* rückwärts: Ergebnis-Zustände, kurz sperren */
   if (n === STEP_RADAR) return (LEAD + ROT + WIN_ANIM) * 1000;
@@ -48,9 +48,15 @@ export default function BestSelect() {
   const viewportRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
 
+  /* Die Sperre trägt eine Klasse auf die Bühne: die Hinweis-Pille nimmt sich
+     zurück und quittiert keine Klicks, die ohnehin verschluckt würden */
   const lock = useCallback((ms: number) => {
     busyRef.current = true;
-    setTimeout(() => { busyRef.current = false; }, reduced() ? 120 : ms);
+    stageRef.current?.classList.add('busy');
+    setTimeout(() => {
+      busyRef.current = false;
+      stageRef.current?.classList.remove('busy');
+    }, reduced() ? 120 : ms);
   }, []);
 
   const go = useCallback((n: number) => {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type CSSProperties } from 'react';
 import { CATS, STEP_RADAR } from '@/lib/best-select/constants';
 import { countUp, fmt, tx } from '@/lib/best-select/animate';
 import type { View } from './BestSelect';
@@ -8,7 +8,8 @@ import type { View } from './BestSelect';
 /* Zähler-Karte: Zeilen erscheinen mit ihrem Schritt, die Zahl läuft beim
    ersten Vorwärts-Auftritt hoch (danach steht sie sofort). Die Ziffern
    werden imperativ gesetzt — React rendert den Textknoten nie neu, weil
-   sich sein JSX-Wert ('0') zwischen Renders nicht ändert. */
+   sich sein JSX-Wert ('0') zwischen Renders nicht ändert.
+   --rows lässt die Glasplatte mit ihren Zeilen wachsen (Höhe im CSS). */
 export default function CounterCard({ view }: { view: View }) {
   const cardRef = useRef<HTMLDivElement>(null);
   const rowRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -17,7 +18,9 @@ export default function CounterCard({ view }: { view: View }) {
   useEffect(() => {
     const { step, inst, dir } = view;
     const on = step >= 1;
-    tx(cardRef.current, { opacity: on ? (step >= STEP_RADAR ? 0.55 : 1) : 0 }, { duration: inst ? 0 : 0.9 });
+    /* Radar-Phase: zurücknehmen, aber lesbar bleiben — unter ~0.72 fallen die
+       Zeilenbeschriftungen auf dem Glas unter AA-Kontrast */
+    tx(cardRef.current, { opacity: on ? (step >= STEP_RADAR ? 0.72 : 1) : 0 }, { duration: inst ? 0 : 0.9 });
     CATS.forEach((cat, i) => {
       const row = rowRefs.current[i], num = numRefs.current[i];
       if (!row || !num) return;
@@ -37,8 +40,10 @@ export default function CounterCard({ view }: { view: View }) {
     });
   }, [view]);
 
+  const rows = Math.max(1, Math.min(view.step, CATS.length));
   return (
-    <div id="counter" ref={cardRef} aria-hidden="true">
+    <div id="counter" ref={cardRef} aria-hidden="true"
+      style={{ '--rows': rows } as CSSProperties}>
       <div className="core">
         {CATS.map((cat, i) => (
           <div className="crow" key={cat.key} ref={el => { rowRefs.current[i] = el; }}>
