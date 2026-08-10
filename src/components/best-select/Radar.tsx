@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { BEAM_FADE, BEAM_OUT, BEAM_R, HUB, LEAD, ROT } from '@/lib/best-select/constants';
+import { BEAM_FADE, BEAM_OUT, BEAM_R, HUB, LEAD, ROT, STEP_FINAL, STEP_RADAR } from '@/lib/best-select/constants';
 import { later, tx } from '@/lib/best-select/animate';
 import type { View } from './BestSelect';
 
@@ -16,8 +16,8 @@ export default function Radar({ view }: { view: View }) {
     const radar = radarRef.current, sweep = sweepRef.current;
     if (!radar || !sweep) return;
     const { step, inst, dir } = view;
-    const animatedSweep = step === 4 && !inst && dir >= 0;
-    if (step === 4 || step === 5) {
+    const animatedSweep = step === STEP_RADAR && !inst && dir >= 0;
+    if (step === STEP_RADAR || step === STEP_FINAL) {
       tx(radar, { opacity: 1 }, { duration: inst ? 0 : 0.8 });
       if (animatedSweep) {
         radar.classList.remove('run');

@@ -1,21 +1,19 @@
 import type { CSSProperties } from 'react';
-import { CATS, LEAD, ROT, type CatKey } from '@/lib/best-select/constants';
+import { CATS, LEAD, ROT, STEP_FINAL, STEP_RADAR, type CatKey } from '@/lib/best-select/constants';
 import { ICONS } from '@/lib/best-select/placement';
 import type { View } from './BestSelect';
 
 const GLYPH = Object.fromEntries(CATS.map(c => [c.key, c.glyph])) as Record<CatKey, string>;
 
 /* Symbol-Ebene: Platzierung ist deterministisch und steht auf Modulebene fest —
-   hier ändern sich nur die Zustandsklassen (s1/s2/s3 · sweep/done). */
+   hier ändern sich nur die Zustandsklassen (s1…s8 · sweep/done). */
 export default function IconsLayer({ view }: { view: View }) {
   const { step, inst, dir } = view;
   const cls = [
-    step >= 1 && 's1',
-    step >= 2 && 's2',
-    step >= 3 && 's3',
-    /* Vorwärts in Schritt 4: der Radar entscheidet.
-       Sprung, Zurück-Navigation, Schritt 05: Ergebnis-Zustand ohne Choreografie. */
-    step >= 4 && ((inst || dir < 0 || step === 5) ? 'done' : 'sweep'),
+    ...CATS.map((cat, i) => step >= i + 1 && 's' + (i + 1)),
+    /* Vorwärts in Schritt 09: der Radar entscheidet.
+       Sprung, Zurück-Navigation, Schritt 10: Ergebnis-Zustand ohne Choreografie. */
+    step >= STEP_RADAR && ((inst || dir < 0 || step === STEP_FINAL) ? 'done' : 'sweep'),
   ].filter(Boolean).join(' ');
 
   return (

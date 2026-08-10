@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { CATS } from '@/lib/best-select/constants';
+import { CATS, STEP_RADAR } from '@/lib/best-select/constants';
 import { countUp, fmt, tx } from '@/lib/best-select/animate';
 import type { View } from './BestSelect';
 
@@ -17,7 +17,7 @@ export default function CounterCard({ view }: { view: View }) {
   useEffect(() => {
     const { step, inst, dir } = view;
     const on = step >= 1;
-    tx(cardRef.current, { opacity: on ? (step >= 4 ? 0.55 : 1) : 0 }, { duration: inst ? 0 : 0.9 });
+    tx(cardRef.current, { opacity: on ? (step >= STEP_RADAR ? 0.55 : 1) : 0 }, { duration: inst ? 0 : 0.9 });
     CATS.forEach((cat, i) => {
       const row = rowRefs.current[i], num = numRefs.current[i];
       if (!row || !num) return;
@@ -30,7 +30,7 @@ export default function CounterCard({ view }: { view: View }) {
       tx(row, { y: 0, opacity: 1 }, { duration: inst ? 0 : 0.9, delay: inst ? 0 : 0.15 });
       if (fresh) {
         num.textContent = '0';
-        countUp(num, cat.total, i === 2 ? 2200 : 1400);
+        countUp(num, cat.total, cat.key === 'fonds' ? 2200 : 1400);
       } else {
         num.textContent = fmt(cat.total);
       }

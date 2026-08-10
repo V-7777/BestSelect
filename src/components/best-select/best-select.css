@@ -105,11 +105,13 @@ body:active .hint-ico{background:rgba(245,250,255,.17);transform:translate(2px,-
   -webkit-backdrop-filter:blur(20px) saturate(1.35);backdrop-filter:blur(20px) saturate(1.35);
   box-shadow:0 0 0 1px rgba(197,198,205,.13),
              0 18px 44px rgba(9,25,44,.5),0 2px 8px rgba(9,25,44,.32)}
-#counter .core{padding:9px 19px;border-radius:11px;
+#counter .core{padding:7px 18px;border-radius:11px;
   background:linear-gradient(180deg,var(--glass-hi),var(--glass-lo));
   box-shadow:inset 0 1px 0 rgba(245,250,255,.17),inset 0 0 0 1px rgba(215,226,255,.05)}
+/* 8 Zeilen statt 3: dichter gesetzt, damit die Karte unter der Textschiene
+   Platz für die ganze Marktleiter behält */
 .crow{display:flex;align-items:center;justify-content:space-between;gap:14px;
-  padding:11px 0;opacity:0}
+  padding:6px 0;opacity:0}
 .clabel{display:flex;align-items:center;gap:10px;
   font-size:11px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;
   color:var(--muted);white-space:nowrap}
@@ -120,10 +122,15 @@ body:active .hint-ico{background:rgba(245,250,255,.17);transform:translate(2px,-
   background:linear-gradient(180deg,rgba(26,62,100,.9),rgba(10,30,51,.92));
   box-shadow:inset 0 1px 0 rgba(215,226,255,.2),0 0 0 1px rgba(215,226,255,.12)}
 .cico svg{width:12px;height:12px;display:block}
+.ci-bsp{color:#EFD9A6}
+.ci-vv{color:#D7E2FF}
 .ci-spk{color:var(--cream)}
 .ci-vers{color:var(--lift)}
+.ci-ibt{color:#F2BFA9}
+.ci-stb{color:#9BD8CB}
+.ci-bank{color:#6FCBF2}
 .ci-fonds{color:#8FBCF8}
-.cnum{font-size:26px;font-weight:500;color:#fff;letter-spacing:.01em;
+.cnum{font-size:20px;font-weight:500;color:#fff;letter-spacing:.01em;
   font-variant-numeric:tabular-nums}
 
 /* ---------- Symbol-Ebene: kleine Glas-Badges, ohne backdrop-filter (Performance) ---------- */
@@ -145,13 +152,20 @@ body:active .hint-ico{background:rgba(245,250,255,.17);transform:translate(2px,-
    laufen komplett im Compositor, kein Repaint während des Umlaufs. */
 .ico::after{content:'';position:absolute;inset:0;border-radius:inherit;
   background:rgba(203,228,255,.9);opacity:0;pointer-events:none}
-.spk,.vers{width:38px;height:38px;margin:-19px 0 0 -19px;z-index:2;
+.bsp,.vv,.spk,.vers,.ibt,.stb,.bank{width:38px;height:38px;margin:-19px 0 0 -19px;z-index:2;
   --nbg:linear-gradient(180deg,rgba(26,62,100,.93),rgba(10,30,51,.95));
   --nsh:inset 0 1px 0 rgba(215,226,255,.24),
         0 0 0 1px rgba(215,226,255,.15),
         0 3px 11px rgba(3,9,17,.55)}
+/* Kategoriefarben: Blau-Familie plus warmes Ecru/Peach (Design.md) — die
+   Legenden-Kacheln (.ci-…) führen dieselben Werte */
+.bsp{--nfg:#EFD9A6}
+.vv{--nfg:#D7E2FF}
 .spk{--nfg:var(--cream)}
 .vers{--nfg:var(--lift)}
+.ibt{--nfg:#F2BFA9}
+.stb{--nfg:#9BD8CB}
+.bank{--nfg:#6FCBF2}
 .fonds{width:23px;height:23px;margin:-11.5px 0 0 -11.5px;border-radius:7px;z-index:1;
   --nfg:#8FBCF8;
   --nbg:linear-gradient(180deg,rgba(21,55,90,.82),rgba(10,30,51,.86));
@@ -169,8 +183,10 @@ body:active .hint-ico{background:rgba(245,250,255,.17);transform:translate(2px,-
 .ico svg{width:23px;height:23px;display:block}
 .fonds svg{width:14px;height:14px}
 
-#icons.s1 .spk,#icons.s2 .vers{opacity:1;transform:scale(1)}
-#icons.s3 .fonds{opacity:.88;transform:scale(1)}
+/* Auftrittsreihenfolge = CATS-Reihenfolge: aufsteigend nach Marktgröße */
+#icons.s1 .bsp,#icons.s2 .vv,#icons.s3 .spk,#icons.s4 .vers,
+#icons.s5 .ibt,#icons.s6 .stb,#icons.s7 .bank{opacity:1;transform:scale(1)}
+#icons.s8 .fonds{opacity:.88;transform:scale(1)}
 
 /* ---------- Radar-Durchlauf: ein Umlauf — Puls und Verlöschen in einem ---------- */
 /* Jedes Symbol blitzt auf, wenn die Kante darüberstreicht, und verglüht

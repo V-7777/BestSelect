@@ -5,7 +5,7 @@
    reine Funktion des View-Zustands {step, inst, dir}. */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { LAST, LEAD, ROT, WIN_ANIM } from '@/lib/best-select/constants';
+import { LAST, LEAD, N_CATS, ROT, STEP_FINAL, STEP_RADAR, WIN_ANIM } from '@/lib/best-select/constants';
 import { bump, reduced, tx } from '@/lib/best-select/animate';
 import Stage from './Stage';
 import IconGlyphs from './IconGlyphs';
@@ -29,13 +29,13 @@ export interface View {
    Erzählmoment amputieren; der Radar darf bewusst früh Richtung Finale
    verlassen werden, sobald die Auslese lesbar ist */
 function lockFor(n: number, dir: number): number {
-  if (dir < 0) return 900;    /* rückwärts: Ergebnis-Zustände, kurz sperren */
-  if (n === 4) return (LEAD + ROT + WIN_ANIM) * 1000;
-                              /* bis der letzte Gewinner (Nordwesten) steht —
-                                 vorher wäre die Aussage des Schritts amputiert */
-  if (n === 3) return 2600;   /* 500er-Kaskade + Zähler */
-  if (n === 1 || n === 2) return 1900;
-  if (n === 5) return 1600;
+  if (dir < 0) return 900;         /* rückwärts: Ergebnis-Zustände, kurz sperren */
+  if (n === STEP_RADAR) return (LEAD + ROT + WIN_ANIM) * 1000;
+                                   /* bis der letzte Gewinner (Nordwesten) steht —
+                                      vorher wäre die Aussage des Schritts amputiert */
+  if (n === N_CATS) return 2600;   /* Fonds-Kaskade + 10.000er-Zähler */
+  if (n >= 1 && n < N_CATS) return 1900;
+  if (n === STEP_FINAL) return 1600;
   return 700;
 }
 
@@ -92,7 +92,7 @@ export default function BestSelect() {
   useEffect(() => {
     const search = window.location.search;
     if (/[?&]debug/.test(search)) setDebug(true);
-    const jump = (search.match(/[?&]step=(\d)/) || [])[1];
+    const jump = (search.match(/[?&]step=(\d+)/) || [])[1];
     if (jump) {
       const step = Math.min(LAST, +jump);
       const play = /[?&]play/.test(search);

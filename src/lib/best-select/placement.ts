@@ -48,7 +48,7 @@ function inland(x: number, y: number, m: number): boolean {
 /* Textschiene und Zähler-Karte bleiben frei — beide liegen über dem Nordwesten */
 const RESERVED = [
   { x0: 76, y0: 36, x1: 530, y1: 274 },    /* Kicker · Headline · Unterzeile */
-  { x0: 88, y0: 252, x1: 472, y1: 470 },   /* Zähler-Karte */
+  { x0: 88, y0: 252, x1: 472, y1: 600 },   /* Zähler-Karte (8 Zeilen) */
 ];
 
 function free(x: number, y: number): boolean {
@@ -82,9 +82,7 @@ function buildIcons(): PlacedIcon[] {
         }
       }
       if (ok) {
-        const stag = cat.key === 'spk' ? placed * 0.06
-                   : cat.key === 'vers' ? placed * 0.045
-                   : rng() * 2.0;
+        const stag = cat.stag > 0 ? placed * cat.stag : rng() * 2.0;
         const ang = (Math.atan2(x - HUB.x, -(y - HUB.y)) * 180 / Math.PI + 360) % 360;
         icons.push({ x, y, cat: cat.key, delay: stag, ang, win: false });
         placed++; fails = 0;
@@ -106,10 +104,11 @@ function buildIcons(): PlacedIcon[] {
     .slice(0, 3)
     .forEach(p => { icons.splice(icons.indexOf(p), 1); });
 
-  /* Gewinner: deterministisch, weit gestreut (Greedy-Farthest-Point über alle
-     Kategorien) — der erste je Kategorie liegt nah an der Nabe, jeder weitere
-     maximiert den Mindestabstand zu allen bisherigen Gewinnern. */
-  const order: CatKey[] = ['vers', 'spk', 'fonds', 'vers', 'fonds', 'spk', 'vers', 'fonds'];
+  /* Gewinner: deterministisch, weit gestreut (Greedy-Farthest-Point) — genau
+     eine Empfehlung je Kategorie, acht insgesamt. Große Pools zuerst: der
+     erste liegt nah an der Nabe, jeder weitere maximiert den Mindestabstand
+     zu allen bisherigen Gewinnern; die kleinen Kategorien wählen zuletzt. */
+  const order: CatKey[] = ['vers', 'spk', 'fonds', 'bank', 'stb', 'ibt', 'vv', 'bsp'];
   const chosen: PlacedIcon[] = [];
   order.forEach(function (catKey) {
     const pool = icons.filter(function (p) {
