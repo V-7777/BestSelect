@@ -1,0 +1,5 @@
+@import "tailwindcss";
+
+/* Die Präsentations-Styles (Bühne, Symbole, Radar, Choreografie) liegen in
+   src/components/best-select/best-select.css — Tailwind steht hier nur für
+   künftige Ausbauten bereit. */

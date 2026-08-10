@@ -1,0 +1,299 @@
+/* ============================================================
+   BEST SELECT — Deutschland bei Nacht (portiert aus best-select-v3.html)
+   Steuerung: Klick (weiter) · ← zurück · Leertaste/→ weiter
+   Letzter Klick startet neu.
+   ============================================================ */
+
+:root{
+  --ink:#09192C; --ink-deep:#050E19;
+  --blue:#2378E7; --lift:#5FA3F5; --cream:#F7EFE9;
+  --muted:rgba(245,250,255,.68); --hair:rgba(215,226,255,.14);
+  --glass-hi:rgba(245,250,255,.16); --glass-lo:rgba(245,250,255,.07);
+  --halo:rgba(215,226,255,.35);
+  /* Bewegungskurven: keine linearen/ease-in-out-Übergänge.
+     --ease   dramatischer Ein-/Auslauf (Erzählmomente)
+     --glide  ruhiges Gleiten mit Masse (Zustandswechsel)
+     --spring federnder Auftritt ohne Nachwippen (Auftauchen)
+     --breathe sinusnahes Atmen (Dauerpuls der Nabe) */
+  --ease:cubic-bezier(.76,0,.1,1);
+  --glide:cubic-bezier(.32,.72,0,1);
+  --spring:cubic-bezier(.22,1,.36,1);
+  --breathe:cubic-bezier(.4,0,.6,1);
+}
+html,body{height:100%;overflow:hidden}
+body{background:var(--ink-deep);color:var(--cream);cursor:pointer;
+  font-family:var(--font-inter),Inter,system-ui,-apple-system,sans-serif;
+  -webkit-font-smoothing:antialiased}
+#viewport{position:fixed;inset:0;
+  background:radial-gradient(115% 95% at 50% 40%, #0D2239 0%, var(--ink) 48%, var(--ink-deep) 100%)}
+#stage{position:absolute;left:50%;top:50%;width:1600px;height:900px;transform-origin:50% 50%;
+  background:url('/germany-night.png') center/cover no-repeat}
+/* Scrims: die Karte ist selbst dunkel — nur oben Lesbarkeit für die Schiene + leichte Vignette */
+#stage::before{content:'';position:absolute;inset:0;z-index:0;pointer-events:none;
+  background:linear-gradient(180deg,rgba(5,14,25,.66) 0%,rgba(5,14,25,.3) 15%,rgba(5,14,25,0) 30%)}
+#stage::after{content:'';position:absolute;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(120% 100% at 50% 42%,rgba(5,14,25,0) 0%,rgba(5,14,25,.05) 60%,rgba(5,14,25,.4) 100%)}
+
+/* Sofort-Render (Zurück-Navigation / Neustart): keine Übergänge, kein Nachlaufen */
+#stage.noanim *,#stage.noanim *::before,#stage.noanim *::after{
+  transition:none !important;animation:none !important}
+
+/* ---------- Textschiene oben links, über der Zähler-Karte ---------- */
+.rail{position:absolute;left:96px;top:56px;width:420px;text-align:left;z-index:3;
+  will-change:transform,opacity,filter}
+/* Eyebrow: winzige Glas-Pille statt Fließtext — trägt den Schritt-Marker
+   und ersetzt die frühere 1px-Linie (eine Auszeichnung genügt) */
+.kicker{display:inline-flex;align-items:center;gap:9px;
+  padding:5px 12px 5px 10px;border-radius:999px;
+  font-size:10px;font-weight:500;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--lift);white-space:nowrap;
+  background:linear-gradient(180deg,rgba(95,163,245,.15),rgba(95,163,245,.05));
+  box-shadow:inset 0 1px 0 rgba(245,250,255,.13),0 0 0 1px rgba(95,163,245,.17)}
+.kicker::before{content:'';width:4px;height:4px;border-radius:50%;background:var(--blue);
+  box-shadow:0 0 9px rgba(35,120,231,.95);flex:none}
+.kicker:empty{display:none}
+/* Selecta ist eine Lizenzschrift und liegt nicht bei — steht zuerst im Stack,
+   damit sie greift, sobald sie auf dem Präsentationsrechner installiert ist;
+   bis dahin trägt Open Sans die Headline. */
+.rail h1{font-family:'Selecta',var(--font-open-sans),'Open Sans',Inter,system-ui,sans-serif;
+  font-weight:600;font-size:39px;line-height:1.1;
+  letter-spacing:-.022em;margin:16px 0 12px;text-wrap:balance}
+.sub{font-size:15.5px;line-height:1.55;color:var(--muted)}
+.rail .note{font-size:12px;line-height:1.5;letter-spacing:.02em;color:rgba(245,250,255,.48);margin-top:14px}
+
+/* ---------- Fußzeile: Hinweis-Pille + Fortschritt ---------- */
+.meta{position:absolute;bottom:22px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--muted);z-index:3}
+#hint{left:96px}
+#count{right:96px;font-variant-numeric:tabular-nums;
+  padding:9px 16px;border-radius:999px;
+  background:linear-gradient(180deg,rgba(245,250,255,.07),rgba(245,250,255,.025));
+  box-shadow:inset 0 1px 0 rgba(245,250,255,.10),0 0 0 1px rgba(215,226,255,.09)}
+
+/* Nested CTA: Pfeil sitzt nie nackt neben dem Text, sondern in eigenem
+   Kreis bündig am inneren Rand der Pille */
+.hint-pill{display:inline-flex;align-items:center;gap:13px;
+  padding:5px 5px 5px 18px;border-radius:999px;color:rgba(245,250,255,.82);
+  background:linear-gradient(180deg,rgba(245,250,255,.11),rgba(245,250,255,.035));
+  box-shadow:inset 0 1px 0 rgba(245,250,255,.15),0 0 0 1px rgba(215,226,255,.13),
+             0 10px 28px rgba(9,25,44,.45);
+  transition:transform .7s var(--glide),box-shadow .7s var(--glide)}
+.hint-ico{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;
+  background:rgba(245,250,255,.10);
+  box-shadow:inset 0 1px 0 rgba(245,250,255,.2),0 0 0 1px rgba(215,226,255,.08);
+  transition:transform .7s var(--glide),background .7s var(--glide)}
+.hint-ico svg{width:13px;height:13px;display:block}
+.hint-ico .g-restart,.hint-pill.is-restart .g-next{display:none}
+.hint-pill.is-restart .g-restart{display:block}
+/* Der Klick trifft die ganze Bühne — die Pille quittiert ihn trotzdem */
+body:active .hint-pill{transform:scale(.978);
+  box-shadow:inset 0 1px 0 rgba(245,250,255,.15),0 0 0 1px rgba(215,226,255,.18),
+             0 4px 14px rgba(9,25,44,.45)}
+body:active .hint-ico{background:rgba(245,250,255,.17);transform:translate(2px,-1px) scale(1.06)}
+@keyframes nudge{
+  0%,72%,100%{transform:translateX(0)}
+  84%{transform:translateX(2.5px)}}
+.hint-ico svg{animation:nudge 4.5s var(--breathe) infinite}
+
+/* ---------- Zähler-Karte links, unter der Textschiene (Glass Rule aus Design.md) ---------- */
+/* Doppelrand: Aussenschale (Fassung) trägt Glas + Haarlinie, der Kern sitzt
+   mit konzentrischem Radius darin (16 − 5 = 11) — wirkt wie eine Glasplatte
+   in einer gefrästen Zarge statt wie ein flacher Kasten */
+#counter{position:absolute;left:96px;top:262px;width:364px;padding:5px;border-radius:16px;
+  opacity:0;z-index:3;
+  background:rgba(245,250,255,.045);
+  -webkit-backdrop-filter:blur(20px) saturate(1.35);backdrop-filter:blur(20px) saturate(1.35);
+  box-shadow:0 0 0 1px rgba(197,198,205,.13),
+             0 18px 44px rgba(9,25,44,.5),0 2px 8px rgba(9,25,44,.32)}
+#counter .core{padding:9px 19px;border-radius:11px;
+  background:linear-gradient(180deg,var(--glass-hi),var(--glass-lo));
+  box-shadow:inset 0 1px 0 rgba(245,250,255,.17),inset 0 0 0 1px rgba(215,226,255,.05)}
+.crow{display:flex;align-items:center;justify-content:space-between;gap:14px;
+  padding:11px 0;opacity:0}
+.clabel{display:flex;align-items:center;gap:10px;
+  font-size:11px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted);white-space:nowrap}
+/* Legenden-Kachel: gleicher Aufbau wie die Symbole auf der Karte (gleiche
+   Fläche, gleiche Kante, gleiche Kategoriefarbe), damit die Zeile ohne
+   Erklärung auf ihre Symbole auf der Karte zeigt */
+.cico{flex:none;width:20px;height:20px;display:grid;place-items:center;border-radius:6px;
+  background:linear-gradient(180deg,rgba(26,62,100,.9),rgba(10,30,51,.92));
+  box-shadow:inset 0 1px 0 rgba(215,226,255,.2),0 0 0 1px rgba(215,226,255,.12)}
+.cico svg{width:12px;height:12px;display:block}
+.ci-spk{color:var(--cream)}
+.ci-vers{color:var(--lift)}
+.ci-fonds{color:#8FBCF8}
+.cnum{font-size:26px;font-weight:500;color:#fff;letter-spacing:.01em;
+  font-variant-numeric:tabular-nums}
+
+/* ---------- Symbol-Ebene: kleine Glas-Badges, ohne backdrop-filter (Performance) ---------- */
+#icons{position:absolute;inset:0;z-index:1;pointer-events:none;contain:layout style paint}
+/* Doppelrand im Miniformat: äusserer Haarlinien-Ring + innere Lichtkante
+   (inset) statt outline — ergibt eine gefaste Kante ohne Zusatz-DOM */
+/* Normal- und Gewinner-Auftritt liegen als Custom Properties vor (--n… / --w…),
+   weil die Gewinner-Choreografie beide Zustände in einer Keyframe-Sequenz
+   braucht: erst der Kategorie-Look, dann — unsichtbar — der Gewinner-Look. */
+.ico{position:absolute;display:grid;place-items:center;border-radius:9px;
+  opacity:0;transform:scale(.3);
+  color:var(--nfg);background:var(--nbg);box-shadow:var(--nsh);
+  transition:transform .8s var(--spring) var(--in,0s),
+             opacity .55s var(--glide) var(--in,0s),
+             background .7s var(--glide),box-shadow .7s var(--glide),color .7s var(--glide)}
+/* Blitz-Ebene für den Radar-Durchlauf: statt filter:brightness() (je Symbol
+   ein eigener Render-Pass pro Frame) liegt über jedem Symbol eine einmal
+   gerasterte Lichtscheibe, deren Deckkraft aufblitzt — Opacity und Transform
+   laufen komplett im Compositor, kein Repaint während des Umlaufs. */
+.ico::after{content:'';position:absolute;inset:0;border-radius:inherit;
+  background:rgba(203,228,255,.9);opacity:0;pointer-events:none}
+.spk,.vers{width:38px;height:38px;margin:-19px 0 0 -19px;z-index:2;
+  --nbg:linear-gradient(180deg,rgba(26,62,100,.93),rgba(10,30,51,.95));
+  --nsh:inset 0 1px 0 rgba(215,226,255,.24),
+        0 0 0 1px rgba(215,226,255,.15),
+        0 3px 11px rgba(3,9,17,.55)}
+.spk{--nfg:var(--cream)}
+.vers{--nfg:var(--lift)}
+.fonds{width:23px;height:23px;margin:-11.5px 0 0 -11.5px;border-radius:7px;z-index:1;
+  --nfg:#8FBCF8;
+  --nbg:linear-gradient(180deg,rgba(21,55,90,.82),rgba(10,30,51,.86));
+  --nsh:inset 0 1px 0 rgba(215,226,255,.16),
+        0 0 0 1px rgba(215,226,255,.10)}
+/* Gewinner: zwei konzentrische Ringe (Lichtkante + Halo-Zarge) — derselbe
+   Doppelrand wie die Zähler-Karte, nur auf Symbolgrösse heruntergerechnet */
+.win{--ws:1.4;
+  --wbg:linear-gradient(180deg,rgba(35,120,231,.88),rgba(35,120,231,.42));
+  --wsh:inset 0 1px 0 rgba(255,255,255,.32),
+        0 0 0 1px rgba(245,250,255,.42),
+        0 0 0 3.5px rgba(35,120,231,.2),
+        0 0 30px -2px rgba(35,120,231,.95)}
+.fonds.win{--ws:1.7}
+.ico svg{width:23px;height:23px;display:block}
+.fonds svg{width:14px;height:14px}
+
+#icons.s1 .spk,#icons.s2 .vers{opacity:1;transform:scale(1)}
+#icons.s3 .fonds{opacity:.88;transform:scale(1)}
+
+/* ---------- Radar-Durchlauf: ein Umlauf — Puls und Verlöschen in einem ---------- */
+/* Jedes Symbol blitzt auf, wenn die Kante darüberstreicht, und verglüht
+   dahinter als Restglut: erst hell, dann rasch dunkel mit langem, schwachem
+   Schweif (easeOutExpo auf der Deckkraft) — der Nachlauf des Strahls, nur
+   je Symbol. Kein Kollaps: die Glut bleibt in Grösse und Glanz stehen und
+   verliert nur Licht. Opacity fehlt bewusst im 0%-Frame: so startet die
+   Kurve beim jeweiligen Grundwert (Fonds: .88).
+   Nur transform + opacity — das Aufhellen übernimmt pingFlash auf ::after. */
+@keyframes pingOut{
+  0%  {transform:scale(1);
+       animation-timing-function:cubic-bezier(.32,.72,0,1)}
+  27% {opacity:1;transform:scale(1.55);
+       animation-timing-function:cubic-bezier(.19,1,.22,1)}
+  100%{opacity:0;transform:scale(1.15)}}
+@keyframes pingFlash{
+  0%  {opacity:0;animation-timing-function:cubic-bezier(.32,.72,0,1)}
+  27% {opacity:.55;animation-timing-function:cubic-bezier(.19,1,.22,1)}
+  60% {opacity:.1}
+  100%{opacity:0}}
+#icons.sweep .ico{animation:pingOut .7s var(--pd) both}
+#icons.sweep .ico::after{animation:pingFlash .7s var(--pd) both}
+
+/* Gewinner: gleicher Puls, gleiche Restglut wie alle anderen (13% ≙
+   Puls-Spitze bei .19s, 48% ≙ .7s — deckungsgleich mit pingOut), danach
+   der Wiederauftritt als Auswahl, dicht hinter der Glut her. Auch sie
+   räumt der Strahl erst ab; sonst stünde die Auswahl fest, bevor der
+   Radar an ihnen vorbeigekommen ist. Weil alles an --pd (= Strahlwinkel)
+   hängt, läuft die Sequenz im Uhrzeigersinn ab Norden mit: Nordost,
+   Südost, Südwest, Nordwest. Das Aufblitzen liefert auch hier pingFlash
+   (endet bei Deckkraft 0, bevor der Gewinner wieder auftaucht). */
+@keyframes winFlip{
+  0%  {transform:scale(1);color:var(--nfg);
+       background:var(--nbg);box-shadow:var(--nsh);
+       animation-timing-function:cubic-bezier(.32,.72,0,1)}
+  13% {opacity:1;transform:scale(1.55);
+       color:var(--nfg);background:var(--nbg);box-shadow:var(--nsh);
+       animation-timing-function:cubic-bezier(.19,1,.22,1)}
+  48% {opacity:0;transform:scale(1.15);
+       color:var(--nfg);background:var(--nbg);box-shadow:var(--nsh)}
+  /* Farbwechsel liegt im unsichtbaren Fenster — kein Umfärben vor den Augen */
+  55% {opacity:0;transform:scale(.42);color:#fff;
+       background:var(--wbg);box-shadow:var(--wsh);
+       animation-timing-function:cubic-bezier(.22,1,.36,1)}
+  100%{opacity:1;transform:scale(var(--ws));color:#fff;
+       background:var(--wbg);box-shadow:var(--wsh)}}
+#icons.sweep .win{animation:winFlip 1.45s var(--pd) both}
+
+/* Ergebnis-Zustand ohne Choreografie (Sprung, Zurück-Navigation, Schritt 05) */
+#icons.done .ico{transition-delay:0s}
+#icons.done .ico:not(.win){opacity:0;transform:scale(.4)}
+#icons.done .win{opacity:1;transform:scale(var(--ws));color:#fff;
+  background:var(--wbg);box-shadow:var(--wsh)}
+
+/* ---------- Radar: Strahl + Nabe mit Weitblick-W ----------
+   Aufbau: #sweep ist eine rotierende Hülle, in der Strahl und Nachlauf
+   liegen. Nur die Hülle bewegt sich — ihr Inhalt wird einmal gerastert und
+   danach als fertige Textur gedreht. Kein mix-blend-mode: Blendmodi zwingen
+   den Compositor, in jedem Bild den Hintergrund (Karte + Symbole) unter der
+   940px-Scheibe zurückzulesen; auf dunklem Grund ist der Unterschied zu
+   normalem Alpha ohnehin kaum sichtbar. */
+#radar{position:absolute;inset:0;z-index:2;pointer-events:none;opacity:0;
+  contain:layout paint}
+#sweep{position:absolute;opacity:0}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+/* Dauer und Vorlauf setzt die Radar-Komponente aus ROT/LEAD — hier nur die
+   Form. Ein einziger Umlauf: die Kante pingt und räumt in derselben Bewegung. */
+#radar.run #sweep{animation:spin 2.8s linear .8s 1 both;will-change:transform}
+
+/* Strahl: eine echte 2px-Linie von der Nabe nach aussen, kein Verlaufskeil.
+   Der Verlauf regelt nur, wo sie anfängt (Nabenloch) und ausläuft. */
+#arm{position:absolute;left:50%;top:0;width:2px;height:50%;margin-left:-1px;
+  background:linear-gradient(to top,
+    rgba(150,195,255,0) 4%,
+    rgba(200,226,255,.95) 13%,
+    rgba(186,218,255,.9) 78%,
+    rgba(150,195,255,0) 100%);
+  box-shadow:0 0 7px rgba(120,180,255,.45)}
+/* Nachlauf: kurzer Sektor hinter der Linie. Er trägt die Drehrichtung, aber
+   die Linie bleibt die Kante — darum flach ansteigend und deutlich unter
+   der Helligkeit des Arms. */
+#trail{position:absolute;inset:0;border-radius:50%;
+  background:conic-gradient(from 0deg,
+    rgba(95,163,245,0) 0deg 332deg,
+    rgba(95,163,245,.07) 346deg,
+    rgba(120,180,255,.19) 356deg,
+    rgba(160,200,255,.34) 360deg);
+  -webkit-mask:radial-gradient(circle,transparent 0 24px,#000 62px,#000 58%,transparent 74%);
+  mask:radial-gradient(circle,transparent 0 24px,#000 62px,#000 58%,transparent 74%)}
+#ring{position:absolute;border-radius:50%;
+  box-shadow:0 0 0 1px rgba(95,163,245,.11),inset 0 0 70px rgba(95,163,245,.05)}
+/* Nabe als gefräste Fassung: Lichtkante, Luftspalt, Halo-Ring */
+#hub{position:absolute;width:64px;height:64px;display:grid;place-items:center;border-radius:50%;
+  background:radial-gradient(circle,rgba(13,34,57,.94) 0%,rgba(13,34,57,.62) 60%,rgba(13,34,57,0) 100%);
+  box-shadow:0 0 0 1px rgba(245,250,255,.13),
+             0 0 0 4px rgba(35,120,231,.07),
+             0 0 0 5px rgba(150,195,255,.24),
+             0 0 32px rgba(35,120,231,.38)}
+/* Der Ring bleibt auf 1px und dicht — gepulst wird über Deckkraft und
+   Schein, nicht über Stärke; ein mitwachsender Ring wirkt nach Zielscheibe.
+   Er soll nur zu ahnen sein: die Nabe trägt das W, nicht den Ring. */
+@keyframes hubPulse{
+  0%,100%{box-shadow:0 0 0 1px rgba(245,250,255,.13),0 0 0 4px rgba(35,120,231,.07),
+                     0 0 0 5px rgba(150,195,255,.24),0 0 32px rgba(35,120,231,.38)}
+  50%{box-shadow:0 0 0 1px rgba(245,250,255,.2),0 0 0 4px rgba(35,120,231,.1),
+                 0 0 0 5px rgba(150,195,255,.38),0 0 44px rgba(35,120,231,.55)}}
+#radar.run #hub{animation:hubPulse 1.8s var(--breathe) infinite}
+#hub svg{width:34px;height:auto;display:block;color:var(--cream);
+  filter:drop-shadow(0 2px 6px rgba(3,9,17,.6))}
+
+/* Nur für Screenreader: Evidenz je Schritt */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
+  clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+@media (forced-colors: active){
+  #counter{outline:1px solid CanvasText}
+  .ico{outline:1px solid CanvasText}
+  #icons.sweep .win,#icons.done .win{forced-color-adjust:none}
+}
+
+@media (prefers-reduced-motion: reduce){
+  #stage *,#stage *::before,#stage *::after{
+    transition-duration:.01ms !important;transition-delay:0ms !important;
+    animation-duration:.01ms !important;animation-delay:0ms !important;
+    animation-iteration-count:1 !important}
+}

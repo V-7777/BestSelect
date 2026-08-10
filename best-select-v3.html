@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Best Select — Deutschland</title>
+<!--
+  ============================================================
+  BEST SELECT V3 — Deutschland bei Nacht
+  Steuerung: Klick (weiter) · ← zurück · Leertaste/→ weiter
+  Letzter Klick startet neu.
+
+  Drei Kategorien erscheinen als Symbole über Deutschland,
+  der Weitblick-Radar filtert die Besten heraus.
+
+  ABSTIMMUNG:
+    · DIVISOR im <script>: 1 Symbol ≈ n reale Anbieter/Produkte
+    · GERMANY-Polygon: mit ?debug=1 visuell nachjustieren
+  ============================================================
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#09192C; --ink-deep:#050E19;
+    --blue:#2378E7; --lift:#5FA3F5; --cream:#F7EFE9;
+    --muted:rgba(245,250,255,.68); --hair:rgba(215,226,255,.14);
+    --glass-hi:rgba(245,250,255,.16); --glass-lo:rgba(245,250,255,.07);
+    --halo:rgba(215,226,255,.35);
+    /* Bewegungskurven: keine linearen/ease-in-out-Übergänge.
+       --ease   dramatischer Ein-/Auslauf (Erzählmomente)
+       --glide  ruhiges Gleiten mit Masse (Zustandswechsel)
+       --spring federnder Auftritt ohne Nachwippen (Auftauchen)
+       --breathe sinusnahes Atmen (Dauerpuls der Nabe) */
+    --ease:cubic-bezier(.76,0,.1,1);
+    --glide:cubic-bezier(.32,.72,0,1);
+    --spring:cubic-bezier(.22,1,.36,1);
+    --breathe:cubic-bezier(.4,0,.6,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;overflow:hidden}
+  body{background:var(--ink-deep);color:var(--cream);cursor:pointer;
+    font-family:Inter,system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+  #viewport{position:fixed;inset:0;
+    background:radial-gradient(115% 95% at 50% 40%, #0D2239 0%, var(--ink) 48%, var(--ink-deep) 100%)}
+  #stage{position:absolute;left:50%;top:50%;width:1600px;height:900px;transform-origin:50% 50%;
+    background:url('Germany Night.png') center/cover no-repeat}
+  /* Scrims: die Karte ist selbst dunkel — nur oben Lesbarkeit für die Schiene + leichte Vignette */
+  #stage::before{content:'';position:absolute;inset:0;z-index:0;pointer-events:none;
+    background:linear-gradient(180deg,rgba(5,14,25,.66) 0%,rgba(5,14,25,.3) 15%,rgba(5,14,25,0) 30%)}
+  #stage::after{content:'';position:absolute;inset:0;z-index:0;pointer-events:none;
+    background:radial-gradient(120% 100% at 50% 42%,rgba(5,14,25,0) 0%,rgba(5,14,25,.05) 60%,rgba(5,14,25,.4) 100%)}
+
+  /* Sofort-Render (Zurück-Navigation / Neustart): keine Übergänge, kein Nachlaufen */
+  #stage.noanim *,#stage.noanim *::before,#stage.noanim *::after{
+    transition:none !important;animation:none !important}
+
+  /* ---------- Textschiene oben links, über der Zähler-Karte ---------- */
+  .rail{position:absolute;left:96px;top:56px;width:420px;text-align:left;z-index:3;
+    will-change:transform,opacity,filter}
+  /* Eyebrow: winzige Glas-Pille statt Fließtext — trägt den Schritt-Marker
+     und ersetzt die frühere 1px-Linie (eine Auszeichnung genügt) */
+  .kicker{display:inline-flex;align-items:center;gap:9px;
+    padding:5px 12px 5px 10px;border-radius:999px;
+    font-size:10px;font-weight:500;letter-spacing:.2em;text-transform:uppercase;
+    color:var(--lift);white-space:nowrap;
+    background:linear-gradient(180deg,rgba(95,163,245,.15),rgba(95,163,245,.05));
+    box-shadow:inset 0 1px 0 rgba(245,250,255,.13),0 0 0 1px rgba(95,163,245,.17)}
+  .kicker::before{content:'';width:4px;height:4px;border-radius:50%;background:var(--blue);
+    box-shadow:0 0 9px rgba(35,120,231,.95);flex:none}
+  .kicker:empty{display:none}
+  /* Selecta ist eine Lizenzschrift und liegt nicht bei — steht zuerst im Stack,
+     damit sie greift, sobald sie auf dem Präsentationsrechner installiert ist;
+     bis dahin trägt Open Sans die Headline. */
+  .rail h1{font-family:'Selecta','Open Sans',Inter,system-ui,sans-serif;
+    font-weight:600;font-size:39px;line-height:1.1;
+    letter-spacing:-.022em;margin:16px 0 12px;text-wrap:balance}
+  .sub{font-size:15.5px;line-height:1.55;color:var(--muted)}
+  .rail .note{font-size:12px;line-height:1.5;letter-spacing:.02em;color:rgba(245,250,255,.48);margin-top:14px}
+
+  /* ---------- Fußzeile: Hinweis-Pille + Fortschritt ---------- */
+  .meta{position:absolute;bottom:22px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--muted);z-index:3}
+  #hint{left:96px}
+  #count{right:96px;font-variant-numeric:tabular-nums;
+    padding:9px 16px;border-radius:999px;
+    background:linear-gradient(180deg,rgba(245,250,255,.07),rgba(245,250,255,.025));
+    box-shadow:inset 0 1px 0 rgba(245,250,255,.10),0 0 0 1px rgba(215,226,255,.09)}
+
+  /* Nested CTA: Pfeil sitzt nie nackt neben dem Text, sondern in eigenem
+     Kreis bündig am inneren Rand der Pille */
+  .hint-pill{display:inline-flex;align-items:center;gap:13px;
+    padding:5px 5px 5px 18px;border-radius:999px;color:rgba(245,250,255,.82);
+    background:linear-gradient(180deg,rgba(245,250,255,.11),rgba(245,250,255,.035));
+    box-shadow:inset 0 1px 0 rgba(245,250,255,.15),0 0 0 1px rgba(215,226,255,.13),
+               0 10px 28px rgba(9,25,44,.45);
+    transition:transform .7s var(--glide),box-shadow .7s var(--glide)}
+  .hint-ico{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;
+    background:rgba(245,250,255,.10);
+    box-shadow:inset 0 1px 0 rgba(245,250,255,.2),0 0 0 1px rgba(215,226,255,.08);
+    transition:transform .7s var(--glide),background .7s var(--glide)}
+  .hint-ico svg{width:13px;height:13px;display:block}
+  .hint-ico .g-restart,.hint-pill.is-restart .g-next{display:none}
+  .hint-pill.is-restart .g-restart{display:block}
+  /* Der Klick trifft die ganze Bühne — die Pille quittiert ihn trotzdem */
+  body:active .hint-pill{transform:scale(.978);
+    box-shadow:inset 0 1px 0 rgba(245,250,255,.15),0 0 0 1px rgba(215,226,255,.18),
+               0 4px 14px rgba(9,25,44,.45)}
+  body:active .hint-ico{background:rgba(245,250,255,.17);transform:translate(2px,-1px) scale(1.06)}
+  @keyframes nudge{
+    0%,72%,100%{transform:translateX(0)}
+    84%{transform:translateX(2.5px)}}
+  .hint-ico svg{animation:nudge 4.5s var(--breathe) infinite}
+
+  /* ---------- Zähler-Karte links, unter der Textschiene (Glass Rule aus Design.md) ---------- */
+  /* Doppelrand: Aussenschale (Fassung) trägt Glas + Haarlinie, der Kern sitzt
+     mit konzentrischem Radius darin (16 − 5 = 11) — wirkt wie eine Glasplatte
+     in einer gefrästen Zarge statt wie ein flacher Kasten */
+  #counter{position:absolute;left:96px;top:262px;width:364px;padding:5px;border-radius:16px;
+    opacity:0;z-index:3;
+    background:rgba(245,250,255,.045);
+    -webkit-backdrop-filter:blur(20px) saturate(1.35);backdrop-filter:blur(20px) saturate(1.35);
+    box-shadow:0 0 0 1px rgba(197,198,205,.13),
+               0 18px 44px rgba(9,25,44,.5),0 2px 8px rgba(9,25,44,.32)}
+  #counter .core{padding:9px 19px;border-radius:11px;
+    background:linear-gradient(180deg,var(--glass-hi),var(--glass-lo));
+    box-shadow:inset 0 1px 0 rgba(245,250,255,.17),inset 0 0 0 1px rgba(215,226,255,.05)}
+  .crow{display:flex;align-items:center;justify-content:space-between;gap:14px;
+    padding:11px 0;opacity:0}
+  .clabel{display:flex;align-items:center;gap:10px;
+    font-size:11px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--muted);white-space:nowrap}
+  /* Legenden-Kachel: gleicher Aufbau wie die Symbole auf der Karte (gleiche
+     Fläche, gleiche Kante, gleiche Kategoriefarbe), damit die Zeile ohne
+     Erklärung auf ihre Symbole auf der Karte zeigt */
+  .cico{flex:none;width:20px;height:20px;display:grid;place-items:center;border-radius:6px;
+    background:linear-gradient(180deg,rgba(26,62,100,.9),rgba(10,30,51,.92));
+    box-shadow:inset 0 1px 0 rgba(215,226,255,.2),0 0 0 1px rgba(215,226,255,.12)}
+  .cico svg{width:12px;height:12px;display:block}
+  .ci-spk{color:var(--cream)}
+  .ci-vers{color:var(--lift)}
+  .ci-fonds{color:#8FBCF8}
+  .cnum{font-size:26px;font-weight:500;color:#fff;letter-spacing:.01em;
+    font-variant-numeric:tabular-nums}
+
+  /* ---------- Symbol-Ebene: kleine Glas-Badges, ohne backdrop-filter (Performance) ---------- */
+  #icons{position:absolute;inset:0;z-index:1;pointer-events:none;contain:layout style}
+  /* Doppelrand im Miniformat: äusserer Haarlinien-Ring + innere Lichtkante
+     (inset) statt outline — ergibt eine gefaste Kante ohne Zusatz-DOM */
+  /* Normal- und Gewinner-Auftritt liegen als Custom Properties vor (--n… / --w…),
+     weil die Gewinner-Choreografie beide Zustände in einer Keyframe-Sequenz
+     braucht: erst der Kategorie-Look, dann — unsichtbar — der Gewinner-Look. */
+  .ico{position:absolute;display:grid;place-items:center;border-radius:9px;
+    opacity:0;transform:scale(.3);
+    color:var(--nfg);background:var(--nbg);box-shadow:var(--nsh);
+    transition:transform .8s var(--spring) var(--in,0s),
+               opacity .55s var(--glide) var(--in,0s),
+               background .7s var(--glide),box-shadow .7s var(--glide),color .7s var(--glide)}
+  .spk,.vers{width:38px;height:38px;margin:-19px 0 0 -19px;z-index:2;
+    --nbg:linear-gradient(180deg,rgba(26,62,100,.93),rgba(10,30,51,.95));
+    --nsh:inset 0 1px 0 rgba(215,226,255,.24),
+          0 0 0 1px rgba(215,226,255,.15),
+          0 3px 11px rgba(3,9,17,.55)}
+  .spk{--nfg:var(--cream)}
+  .vers{--nfg:var(--lift)}
+  .fonds{width:23px;height:23px;margin:-11.5px 0 0 -11.5px;border-radius:7px;z-index:1;
+    --nfg:#8FBCF8;
+    --nbg:linear-gradient(180deg,rgba(21,55,90,.82),rgba(10,30,51,.86));
+    --nsh:inset 0 1px 0 rgba(215,226,255,.16),
+          0 0 0 1px rgba(215,226,255,.10)}
+  /* Gewinner: zwei konzentrische Ringe (Lichtkante + Halo-Zarge) — derselbe
+     Doppelrand wie die Zähler-Karte, nur auf Symbolgrösse heruntergerechnet */
+  .win{--ws:1.4;
+    --wbg:linear-gradient(180deg,rgba(35,120,231,.88),rgba(35,120,231,.42));
+    --wsh:inset 0 1px 0 rgba(255,255,255,.32),
+          0 0 0 1px rgba(245,250,255,.42),
+          0 0 0 3.5px rgba(35,120,231,.2),
+          0 0 30px -2px rgba(35,120,231,.95)}
+  .fonds.win{--ws:1.7}
+  .ico svg{width:23px;height:23px;display:block}
+  .fonds svg{width:14px;height:14px}
+
+  #icons.s1 .spk,#icons.s2 .vers{opacity:1;transform:scale(1)}
+  #icons.s3 .fonds{opacity:.88;transform:scale(1)}
+
+  /* ---------- Radar-Durchlauf: ein Umlauf — Puls und Verlöschen in einem ---------- */
+  /* Hinweis zur Leistung: das Aufblitzen kostet je Symbol einen eigenen
+     Render-Pass. Wenn es auf schwacher Hardware ruckelt, ist --flt der
+     günstigste Hebel — auf 'none' gesetzt pulsen die Symbole nur noch in
+     der Grösse (siehe auch die div-Werte bei CATS). */
+  /* Jedes Symbol blitzt auf, wenn die Kante darüberstreicht, und verglüht
+     dahinter als Restglut: erst hell, dann rasch dunkel mit langem, schwachem
+     Schweif (easeOutExpo auf der Deckkraft) — der Nachlauf des Strahls, nur
+     je Symbol. Kein Kollaps: die Glut bleibt in Grösse und Glanz stehen und
+     verliert nur Licht. Opacity fehlt bewusst im 0%-Frame: so startet die
+     Kurve beim jeweiligen Grundwert (Fonds: .88). */
+  @keyframes pingOut{
+    0%  {transform:scale(1);filter:none;
+         animation-timing-function:cubic-bezier(.32,.72,0,1)}
+    27% {opacity:1;transform:scale(1.55);filter:var(--flt,brightness(2.1));
+         animation-timing-function:cubic-bezier(.19,1,.22,1)}
+    100%{opacity:0;transform:scale(1.15);filter:brightness(1.5)}}
+  #icons.sweep .ico{animation:pingOut .7s var(--pd) both}
+
+  /* Gewinner: gleicher Puls, gleiche Restglut wie alle anderen (13% ≙
+     Puls-Spitze bei .19s, 48% ≙ .7s — deckungsgleich mit pingOut), danach
+     der Wiederauftritt als Auswahl, dicht hinter der Glut her. Auch sie
+     räumt der Strahl erst ab; sonst stünde die Auswahl fest, bevor der
+     Radar an ihnen vorbeigekommen ist. Weil alles an --pd (= Strahlwinkel)
+     hängt, läuft die Sequenz im Uhrzeigersinn ab Norden mit: Nordost,
+     Südost, Südwest, Nordwest. */
+  @keyframes winFlip{
+    0%  {transform:scale(1);filter:none;color:var(--nfg);
+         background:var(--nbg);box-shadow:var(--nsh);
+         animation-timing-function:cubic-bezier(.32,.72,0,1)}
+    13% {opacity:1;transform:scale(1.55);filter:var(--flt,brightness(2.1));
+         color:var(--nfg);background:var(--nbg);box-shadow:var(--nsh);
+         animation-timing-function:cubic-bezier(.19,1,.22,1)}
+    48% {opacity:0;transform:scale(1.15);filter:brightness(1.5);
+         color:var(--nfg);background:var(--nbg);box-shadow:var(--nsh)}
+    /* Farbwechsel liegt im unsichtbaren Fenster — kein Umfärben vor den Augen */
+    55% {opacity:0;transform:scale(.42);filter:none;color:#fff;
+         background:var(--wbg);box-shadow:var(--wsh);
+         animation-timing-function:cubic-bezier(.22,1,.36,1)}
+    100%{opacity:1;transform:scale(var(--ws));filter:none;color:#fff;
+         background:var(--wbg);box-shadow:var(--wsh)}}
+  #icons.sweep .win{animation:winFlip 1.45s var(--pd) both}
+
+  /* Ergebnis-Zustand ohne Choreografie (Sprung, Zurück-Navigation, Schritt 05) */
+  #icons.done .ico{transition-delay:0s}
+  #icons.done .ico:not(.win){opacity:0;transform:scale(.4)}
+  #icons.done .win{opacity:1;transform:scale(var(--ws));color:#fff;
+    background:var(--wbg);box-shadow:var(--wsh)}
+
+  /* ---------- Radar: Strahl + Nabe mit Weitblick-W ----------
+     Aufbau: #sweep ist eine rotierende Hülle, in der Strahl und Nachlauf
+     liegen. Nur die Hülle bewegt sich — ihr Inhalt wird einmal gerastert und
+     danach als fertige Textur gedreht. Kein mix-blend-mode: Blendmodi zwingen
+     den Compositor, in jedem Bild den Hintergrund (Karte + Symbole) unter der
+     940px-Scheibe zurückzulesen; auf dunklem Grund ist der Unterschied zu
+     normalem Alpha ohnehin kaum sichtbar. */
+  #radar{position:absolute;inset:0;z-index:2;pointer-events:none;opacity:0;
+    contain:layout paint}
+  #sweep{position:absolute;opacity:0}
+  @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+  /* Dauer und Vorlauf setzt das Script aus ROT/LEAD — hier nur die Form.
+     Ein einziger Umlauf: die Kante pingt und räumt in derselben Bewegung. */
+  #radar.run #sweep{animation:spin 2.8s linear .8s 1 both;will-change:transform}
+
+  /* Strahl: eine echte 2px-Linie von der Nabe nach aussen, kein Verlaufskeil.
+     Der Verlauf regelt nur, wo sie anfängt (Nabenloch) und ausläuft. */
+  #arm{position:absolute;left:50%;top:0;width:2px;height:50%;margin-left:-1px;
+    background:linear-gradient(to top,
+      rgba(150,195,255,0) 4%,
+      rgba(200,226,255,.95) 13%,
+      rgba(186,218,255,.9) 78%,
+      rgba(150,195,255,0) 100%);
+    box-shadow:0 0 7px rgba(120,180,255,.45)}
+  /* Nachlauf: kurzer Sektor hinter der Linie. Er trägt die Drehrichtung, aber
+     die Linie bleibt die Kante — darum flach ansteigend und deutlich unter
+     der Helligkeit des Arms. */
+  #trail{position:absolute;inset:0;border-radius:50%;
+    background:conic-gradient(from 0deg,
+      rgba(95,163,245,0) 0deg 332deg,
+      rgba(95,163,245,.07) 346deg,
+      rgba(120,180,255,.19) 356deg,
+      rgba(160,200,255,.34) 360deg);
+    -webkit-mask:radial-gradient(circle,transparent 0 24px,#000 62px,#000 58%,transparent 74%);
+    mask:radial-gradient(circle,transparent 0 24px,#000 62px,#000 58%,transparent 74%)}
+  #ring{position:absolute;border-radius:50%;
+    box-shadow:0 0 0 1px rgba(95,163,245,.11),inset 0 0 70px rgba(95,163,245,.05)}
+  /* Nabe als gefräste Fassung: Lichtkante, Luftspalt, Halo-Ring */
+  #hub{position:absolute;width:64px;height:64px;display:grid;place-items:center;border-radius:50%;
+    background:radial-gradient(circle,rgba(13,34,57,.94) 0%,rgba(13,34,57,.62) 60%,rgba(13,34,57,0) 100%);
+    box-shadow:0 0 0 1px rgba(245,250,255,.13),
+               0 0 0 4px rgba(35,120,231,.07),
+               0 0 0 5px rgba(150,195,255,.24),
+               0 0 32px rgba(35,120,231,.38)}
+  /* Der Ring bleibt auf 1px und dicht — gepulst wird über Deckkraft und
+     Schein, nicht über Stärke; ein mitwachsender Ring wirkt nach Zielscheibe.
+     Er soll nur zu ahnen sein: die Nabe trägt das W, nicht den Ring. */
+  @keyframes hubPulse{
+    0%,100%{box-shadow:0 0 0 1px rgba(245,250,255,.13),0 0 0 4px rgba(35,120,231,.07),
+                       0 0 0 5px rgba(150,195,255,.24),0 0 32px rgba(35,120,231,.38)}
+    50%{box-shadow:0 0 0 1px rgba(245,250,255,.2),0 0 0 4px rgba(35,120,231,.1),
+                   0 0 0 5px rgba(150,195,255,.38),0 0 44px rgba(35,120,231,.55)}}
+  #radar.run #hub{animation:hubPulse 1.8s var(--breathe) infinite}
+  #hub svg{width:34px;height:auto;display:block;color:var(--cream);
+    filter:drop-shadow(0 2px 6px rgba(3,9,17,.6))}
+
+  /* Nur für Screenreader: Evidenz je Schritt */
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
+    clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+  @media (forced-colors: active){
+    #counter{outline:1px solid CanvasText}
+    .ico{outline:1px solid CanvasText}
+    #icons.sweep .win,#icons.done .win{forced-color-adjust:none}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    #stage *,#stage *::before,#stage *::after{
+      transition-duration:.01ms !important;transition-delay:0ms !important;
+      animation-duration:.01ms !important;animation-delay:0ms !important;
+      animation-iteration-count:1 !important}
+  }
+</style>
+</head>
+<body>
+<div id="viewport">
+  <div id="stage">
+
+    <!-- Symbol-Glyphen (einmal definiert, per <use> referenziert) -->
+    <svg aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden">
+      <defs>
+        <symbol id="g-bank" viewBox="0 0 16 16">
+          <path d="M2.5 6.5 L8 3 L13.5 6.5 M4 6.5 V11.5 M6.7 6.5 V11.5 M9.3 6.5 V11.5 M12 6.5 V11.5 M2.5 13 H13.5"
+            fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </symbol>
+        <symbol id="g-shield" viewBox="0 0 16 16">
+          <path d="M8 2 L13 3.8 V7.6 C13 10.9 8 13.8 8 13.8 C8 13.8 3 10.9 3 7.6 V3.8 Z"
+            fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+        </symbol>
+        <symbol id="g-chart" viewBox="0 0 16 16">
+          <path d="M2.5 12.5 L6.5 8.5 L9 10.5 L13.5 5 M10.9 5 H13.5 V7.6"
+            fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </symbol>
+      </defs>
+    </svg>
+
+    <div id="icons" aria-hidden="true"></div>
+
+    <div id="radar" aria-hidden="true">
+      <div id="sweep"><div id="trail"></div><div id="arm"></div></div>
+      <div id="ring"></div>
+      <div id="hub">
+        <svg viewBox="0 0 96.9 67.44" aria-hidden="true">
+          <path fill="currentColor" d="M65.1,2.94l-14.6,32.2c-.3.6-.9,1.1-1.7,1.1h-.8c-.7,0-1.4-.4-1.7-1.1L31.7,2.94c-.3-.6-.9-1.1-1.7-1.1H1.8c-1,0-1.8.8-1.8,1.8v38.2c0,.4.1.8.4,1.1l17.8,23.8c.3.5.9.7,1.5.7h16.8c.6,0,1.2-.3,1.6-.9l8.5-14.1c.2-.4.6-.6,1-.6h1.7c.4,0,.8.2,1,.6l8.5,14.1c.3.5.9.9,1.6.9h16.8c.6,0,1.1-.3,1.5-.7l17.8-23.8c.2-.3.4-.7.4-1.1V3.64c0-1-.8-1.8-1.8-1.8h-28.2c-.7,0-1.4.4-1.7,1.1h-.1Z"/>
+        </svg>
+      </div>
+    </div>
+
+    <div id="counter" aria-hidden="true">
+      <div class="core">
+        <div class="crow"><span class="clabel"><span class="cico ci-spk"><svg viewBox="0 0 16 16"><use href="#g-bank"/></svg></span>Sparkassen</span><span class="cnum">0</span></div>
+        <div class="crow"><span class="clabel"><span class="cico ci-vers"><svg viewBox="0 0 16 16"><use href="#g-shield"/></svg></span>Versicherungsunternehmen</span><span class="cnum">0</span></div>
+        <div class="crow"><span class="clabel"><span class="cico ci-fonds"><svg viewBox="0 0 16 16"><use href="#g-chart"/></svg></span>Investmentfonds &amp; ETFs</span><span class="cnum">0</span></div>
+      </div>
+    </div>
+
+    <div class="rail" id="rail" aria-live="polite">
+      <div class="kicker" id="kicker"></div>
+      <h1 id="head"></h1>
+      <div class="sub" id="sub"></div>
+      <div class="note" id="note"></div>
+      <div class="sr-only" id="sr-evidence"></div>
+    </div>
+    <noscript><div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+      font-size:16px;color:#F7EFE9;text-align:center">Diese Präsentation benötigt JavaScript.</div></noscript>
+
+    <div class="meta" id="hint">
+      <span class="hint-pill" id="hint-pill">
+        <span id="hint-label"></span>
+        <span class="hint-ico" aria-hidden="true">
+          <svg viewBox="0 0 16 16" class="g-next" fill="none" stroke="currentColor"
+               stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3.2 8h9.4M8.9 4.3 12.6 8l-3.7 3.7"/>
+          </svg>
+          <svg viewBox="0 0 16 16" class="g-restart" fill="none" stroke="currentColor"
+               stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M13 8a5 5 0 1 1-1.6-3.7"/><path d="M13 2.6V5h-2.4"/>
+          </svg>
+        </span>
+      </span>
+    </div>
+    <div class="meta" id="count"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/motion@11.11.13/dist/motion.js"></script>
+<script>
+(function () {
+
+  /* ============================================================
+     DATEN & GEOMETRIE
+     ============================================================ */
+
+  /* 1 Symbol ≈ div reale Anbieter/Produkte (341→17 · 522→26 · 10000→333).
+     Fonds laufen bewusst dünner (größere Symbole brauchen Platz).
+     Bei Rucklern auf schwacher Hardware die div-Werte erhöhen. */
+  /* pad = halber Symbolradius: so weit muss ringsum noch Deutschland liegen */
+  var CATS = [
+    { key: 'spk',   label: 'Sparkassen',               total: 341,   div: 20, seed: 101, min: 50, pad: 15, glyph: '#g-bank'   },
+    { key: 'vers',  label: 'Versicherungsunternehmen', total: 522,   div: 20, seed: 202, min: 44, pad: 15, glyph: '#g-shield' },
+    { key: 'fonds', label: 'Investmentfonds & ETFs',   total: 10000, div: 30, seed: 303, min: 22, pad: 10, glyph: '#g-chart'  }
+  ];
+  var WIN_N = { spk: 2, vers: 3, fonds: 3 };   /* 8 Gewinner insgesamt */
+
+  /* Deutschland-Umriss in Bühnenkoordinaten (1600×900). Nicht von Hand
+     geschätzt, sondern aus 'Germany Night.png' gemessen: die Karte leuchtet
+     innerhalb der Grenze deutlich heller als Nachbarländer und Meer
+     (Luminanz ≈ 70–160 gegen ≈ 30), daraus Maske → Konturverfolgung →
+     Douglas-Peucker. Die Kontur ist um ~6 px nach innen versetzt, damit der
+     Glühsaum jenseits der Küstenlinie nicht als Landfläche zählt.
+     Mit ?debug=1 gegen die Karte prüfen. */
+  var GERMANY = [
+    [ 704, 33],[ 686, 36],[ 699, 65],[ 691, 73],[ 694, 80],[ 674, 91],
+    [ 674, 96],[ 684, 94],[ 691,101],[ 686,116],[ 696,141],[ 688,150],
+    [ 668,153],[ 660,180],[ 650,186],[ 639,170],[ 616,156],[ 601,166],
+    [ 566,169],[ 548,190],[ 548,200],[ 556,208],[ 548,220],[ 560,229],
+    [ 559,243],[ 538,280],[ 520,279],[ 516,298],[ 516,305],[ 529,309],
+    [ 536,319],[ 511,338],[ 469,350],[ 455,366],[ 459,385],[ 468,394],
+    [ 463,410],[ 435,430],[ 438,440],[ 430,464],[ 438,470],[ 439,486],
+    [ 433,511],[ 460,534],[ 451,565],[ 470,598],[ 455,615],[ 455,624],
+    [ 466,634],[ 471,654],[ 485,646],[ 494,653],[ 504,648],[ 516,658],
+    [ 534,653],[ 603,685],[ 579,721],[ 581,740],[ 571,753],[ 570,766],
+    [ 554,781],[ 558,801],[ 549,839],[ 559,839],[ 564,845],[ 586,840],
+    [ 605,844],[ 614,838],[ 640,841],[ 649,831],[ 666,828],[ 676,835],
+    [ 696,829],[ 728,861],[ 768,869],[ 783,885],[ 805,876],[ 805,865],
+    [ 821,854],[ 841,856],[ 850,865],[ 848,870],[ 879,868],[ 889,855],
+    [ 896,856],[ 915,844],[ 956,838],[ 964,829],[ 983,839],[ 999,836],
+    [1008,849],[1026,855],[1031,823],[1024,816],[1025,805],[1009,789],
+    [1015,783],[1029,788],[1059,760],[1061,731],[1068,725],[1091,733],
+    [1094,705],[1089,693],[1075,683],[1063,681],[1018,640],[ 996,635],
+    [ 973,606],[ 961,590],[ 971,579],[ 971,568],[ 959,554],[ 979,536],
+    [ 965,524],[ 989,511],[1016,509],[1035,494],[1046,494],[1064,483],
+    [1079,484],[1085,490],[1081,496],[1093,496],[1100,478],[1125,464],
+    [1121,453],[1129,445],[1139,446],[1149,456],[1148,469],[1159,470],
+    [1174,445],[1174,429],[1169,403],[1144,383],[1146,358],[1139,348],
+    [1138,306],[1125,298],[1135,276],[1096,238],[1108,214],[1095,164],
+    [1059,145],[1065,135],[1075,135],[1070,126],[1055,119],[1031,125],
+    [1018,113],[1034, 93],[1048, 98],[1038, 84],[1040, 74],[1028, 74],
+    [1019, 65],[1000, 90],[ 959, 90],[ 944,111],[ 921,124],[ 901,123],
+    [ 871,146],[ 858,139],[ 835,143],[ 826,131],[ 841,118],[ 823,116],
+    [ 815,109],[ 821,100],[ 783, 76],[ 780, 51],[ 768, 50],[ 759, 41],
+    [ 739, 48]
+  ];
+  var HUB = { x: 805, y: 430 };   /* Radar-Nabe ≈ geographische Mitte */
+  var BEAM_R = 470;               /* deckt den entferntesten Umrisspunkt (~450px) */
+  var LEAD = 0.8, ROT = 2.8;      /* Radar: Vorlauf + Sekunden je Umlauf.
+                                     Das Script setzt daraus die spin-Dauer. */
+  /* Ein Umlauf: jedes Symbol blitzt auf, wenn die Kante es trifft, und
+     verglüht als Restglut dahinter (pingOut im CSS). Die Gewinner kommen
+     einzeln aus derselben Glut zurück (winFlip im CSS, Dauer WIN_ANIM ab
+     Strahlkante, Start je Symbol bei --pd). Der letzte liegt kurz vor 360°. */
+  var WIN_ANIM = 1.45;            /* = winFlip-Dauer im CSS */
+  /* Der Strahl verblasst noch in Bewegung und ist kurz nach dem Stillstand
+     weg — die letzten Symbole verlöschen im Abklingen ohne ihn. */
+  var BEAM_FADE = .7;
+  var BEAM_OUT = LEAD + ROT + .25 - BEAM_FADE;
+
+  /* Nur der Titel trägt eine Unterzeile — der Berater spricht, die Bühne zeigt */
+  var T = [
+    { k: 'Auswahlprozess',            h: 'Best Select', s: 'Der ganze Markt. Eine Empfehlung.' },
+    { k: 'Schritt 01 · Sparkassen',   h: 'Jede Sparkasse im Blick' },
+    { k: 'Schritt 02 · Versicherer',  h: 'Jeder Versicherer im Blick' },
+    { k: 'Schritt 03 · Fonds & ETFs', h: 'Der ganze Fondsmarkt',
+      n: 'Darstellung symbolisch verdichtet — jedes Symbol steht für viele Anbieter bzw. Produkte.' },
+    { k: 'Schritt 04 · Filter',       h: 'Der Weitblick-Radar' },
+    { k: 'Schritt 05 · Best Select',  h: 'Das Beste bleibt',
+      n: 'Auswahl anonymisiert — die Namen nennen wir im persönlichen Gespräch.' }
+  ];
+  var LAST = T.length - 1;
+
+  /* ---------- Animations-Wrapper: Motion, sonst CSS-Transitions ---------- */
+  var M = window.Motion && window.Motion.animate ? window.Motion.animate : null;
+  var REDUCE = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var EASE = [0.76, 0, 0.1, 1];
+  var CB = 'cubic-bezier(.76,0,.1,1)';
+
+  function tx(el, p, o) {
+    o = o || {};
+    var d = REDUCE ? 0 : (o.duration === undefined ? 1.5 : o.duration);
+    var dl = REDUCE ? 0 : (o.delay || 0);
+    /* blur: nur für die Textschiene — ein kleiner Kasten, der ohnehin bei jedem
+       Schritt neu gesetzt wird. Nie auf der Symbol-Ebene verwenden. */
+    if (M) {
+      var t = {};
+      if (p.x !== undefined) t.x = p.x;
+      if (p.y !== undefined) t.y = p.y;
+      if (p.scale !== undefined) t.scale = p.scale;
+      if (p.opacity !== undefined) t.opacity = p.opacity;
+      if (p.blur !== undefined) t.filter = 'blur(' + p.blur + 'px)';
+      M(el, t, { duration: d, delay: dl, ease: o.ease || EASE });
+      return;
+    }
+    var parts = [];
+    if (p.x !== undefined || p.y !== undefined) parts.push('translate');
+    if (p.scale !== undefined) parts.push('scale');
+    if (p.opacity !== undefined) parts.push('opacity');
+    if (p.blur !== undefined) parts.push('filter');
+    el.style.transition = parts.map(function (n) {
+      return n + ' ' + d + 's ' + CB + ' ' + dl + 's';
+    }).join(',');
+    if (p.x !== undefined || p.y !== undefined) el.style.translate = (p.x || 0) + 'px ' + (p.y || 0) + 'px';
+    if (p.scale !== undefined) el.style.scale = p.scale;
+    if (p.opacity !== undefined) el.style.opacity = p.opacity;
+    if (p.blur !== undefined) el.style.filter = 'blur(' + p.blur + 'px)';
+  }
+
+  var seq = 0;
+  function later(fn, ms) {
+    var my = seq;
+    setTimeout(function () { if (my === seq) fn(); }, REDUCE ? 0 : ms);
+  }
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function fmt(n) { return n.toLocaleString('de-DE'); }
+
+  /* ============================================================
+     PLATZIERUNG — deterministisch (fester Seed je Kategorie)
+     ============================================================ */
+  function mulberry32(seed) {
+    return function () {
+      seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+      var t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function inPoly(x, y) {
+    if (x < BB.x0 || x > BB.x1 || y < BB.y0 || y > BB.y1) return false;   /* Schnellabweisung */
+    var inside = false;
+    for (var i = 0, j = GERMANY.length - 1; i < GERMANY.length; j = i++) {
+      var xi = GERMANY[i][0], yi = GERMANY[i][1], xj = GERMANY[j][0], yj = GERMANY[j][1];
+      if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
+    }
+    return inside;
+  }
+  /* Das ganze Symbol muss auf deutschem Boden stehen, nicht nur sein Mittelpunkt:
+     geprüft werden Mittelpunkt, vier Achsen und vier Diagonalen im halben
+     Symbolradius. Ohne die Diagonalen rutschen an schrägen Grenzabschnitten
+     (Alpenrand, Oder) Ecken über die Linie. */
+  function inland(x, y, m) {
+    var d = m * .72;
+    return inPoly(x, y) &&
+           inPoly(x - m, y) && inPoly(x + m, y) && inPoly(x, y - m) && inPoly(x, y + m) &&
+           inPoly(x - d, y - d) && inPoly(x + d, y - d) &&
+           inPoly(x - d, y + d) && inPoly(x + d, y + d);
+  }
+  /* Textschiene und Zähler-Karte bleiben frei — beide liegen über dem Nordwesten */
+  var RESERVED = [
+    { x0: 76, y0: 36, x1: 530, y1: 274 },    /* Kicker · Headline · Unterzeile */
+    { x0: 88, y0: 252, x1: 472, y1: 470 }    /* Zähler-Karte */
+  ];
+  function free(x, y) {
+    for (var i = 0; i < RESERVED.length; i++) {
+      var r = RESERVED[i];
+      if (x > r.x0 - 12 && x < r.x1 + 12 && y > r.y0 - 12 && y < r.y1 + 12) return false;
+    }
+    return true;
+  }
+
+  var BB = { x0: 1e9, y0: 1e9, x1: -1e9, y1: -1e9 };
+  GERMANY.forEach(function (v) {
+    BB.x0 = Math.min(BB.x0, v[0]); BB.x1 = Math.max(BB.x1, v[0]);
+    BB.y0 = Math.min(BB.y0, v[1]); BB.y1 = Math.max(BB.y1, v[1]);
+  });
+
+  var ICONS = [];   /* { x, y, cat, delay, ang, win, el } */
+  CATS.forEach(function (cat) {
+    var rng = mulberry32(cat.seed);
+    var n = Math.round(cat.total / cat.div);
+    var minD = cat.min, fails = 0, placed = 0;
+    while (placed < n) {
+      var x = BB.x0 + rng() * (BB.x1 - BB.x0);
+      var y = BB.y0 + rng() * (BB.y1 - BB.y0);
+      var ok = inland(x, y, cat.pad) && free(x, y);
+      if (ok) {
+        for (var i = 0; i < ICONS.length && ok; i++) {
+          var p = ICONS[i];
+          /* Fonds-Punkte prüfen gegen Badges nur 32px, untereinander minD;
+             Badges prüfen gegen alles Bisherige mit minD */
+          var need = (cat.key === 'fonds')
+            ? (p.cat === 'fonds' ? minD : 32)
+            : minD;
+          var dx = p.x - x, dy = p.y - y;
+          if (dx * dx + dy * dy < need * need) ok = false;
+        }
+      }
+      if (ok) {
+        var stag = cat.key === 'spk' ? placed * .06
+                 : cat.key === 'vers' ? placed * .045
+                 : rng() * 2.0;
+        var ang = (Math.atan2(x - HUB.x, -(y - HUB.y)) * 180 / Math.PI + 360) % 360;
+        ICONS.push({ x: x, y: y, cat: cat.key, delay: stag, ang: ang, win: false });
+        placed++; fails = 0;
+      } else if (++fails > 120) {
+        minD *= .92; fails = 0;  /* Terminierung garantiert, sanft — größere
+                                    Symbole vertragen keinen harten Einbruch */
+      }
+    }
+  });
+
+  /* Die drei nabenfernsten Versicherer-Symbole entfallen (Randlagen wirkten
+     verloren) — der Zähler zeigt weiterhin die echte Marktgröße. */
+  ICONS.filter(function (p) { return p.cat === 'vers'; })
+    .sort(function (a, b) {
+      var da = (a.x - HUB.x) * (a.x - HUB.x) + (a.y - HUB.y) * (a.y - HUB.y);
+      var db = (b.x - HUB.x) * (b.x - HUB.x) + (b.y - HUB.y) * (b.y - HUB.y);
+      return db - da;
+    })
+    .slice(0, 3)
+    .forEach(function (p) { ICONS.splice(ICONS.indexOf(p), 1); });
+
+  /* Gewinner: deterministisch, weit gestreut (Greedy-Farthest-Point über alle
+     Kategorien) — der erste je Kategorie liegt nah an der Nabe, jeder weitere
+     maximiert den Mindestabstand zu allen bisherigen Gewinnern. */
+  (function pickWinners() {
+    var order = ['vers', 'spk', 'fonds', 'vers', 'fonds', 'spk', 'vers', 'fonds'];
+    var chosen = [];
+    order.forEach(function (catKey) {
+      var pool = ICONS.filter(function (p) {
+        if (p.cat !== catKey || p.win) return false;
+        var dx = p.x - HUB.x, dy = p.y - HUB.y;
+        /* nicht unter der Nabe, nicht hinter der Textschiene */
+        return (dx * dx + dy * dy > 90 * 90) && p.y > 185;
+      });
+      var best = null, bestScore = -Infinity;
+      pool.forEach(function (p) {
+        var score;
+        if (!chosen.length) {
+          var dx = p.x - HUB.x, dy = p.y - HUB.y;
+          score = -(dx * dx + dy * dy);           /* erster: nah an der Nabe */
+        } else {
+          score = Infinity;
+          chosen.forEach(function (c) {
+            var dx = c.x - p.x, dy = c.y - p.y;
+            score = Math.min(score, dx * dx + dy * dy);
+          });
+        }
+        if (score > bestScore) { bestScore = score; best = p; }
+      });
+      if (best) { best.win = true; chosen.push(best); }
+    });
+  })();
+
+  /* ============================================================
+     DOM-AUFBAU
+     ============================================================ */
+  var stage = document.getElementById('stage');
+  var icons = document.getElementById('icons');
+  var GLYPH = {}; CATS.forEach(function (c) { GLYPH[c.key] = c.glyph; });
+  var SVGNS = 'http://www.w3.org/2000/svg', XLINK = 'http://www.w3.org/1999/xlink';
+
+  ICONS.forEach(function (p) {
+    var el = document.createElement('div');
+    el.className = 'ico ' + p.cat + (p.win ? ' win' : '');
+    el.style.left = p.x.toFixed(1) + 'px';
+    el.style.top = p.y.toFixed(1) + 'px';
+    el.style.setProperty('--in', p.delay.toFixed(2) + 's');
+    el.style.setProperty('--pd', (LEAD + p.ang / 360 * ROT).toFixed(2) + 's');
+    var svg = document.createElementNS(SVGNS, 'svg');
+    svg.setAttribute('viewBox', '0 0 16 16');
+    var use = document.createElementNS(SVGNS, 'use');
+    use.setAttribute('href', GLYPH[p.cat]);
+    use.setAttributeNS(XLINK, 'xlink:href', GLYPH[p.cat]);
+    svg.appendChild(use);
+    el.appendChild(svg);
+    icons.appendChild(el);
+    p.el = el;
+  });
+
+  var radar = document.getElementById('radar');
+  var sweep = document.getElementById('sweep');
+  var ring = document.getElementById('ring');
+  var hub = document.getElementById('hub');
+  sweep.style.width = sweep.style.height = (BEAM_R * 2) + 'px';
+  sweep.style.left = (HUB.x - BEAM_R) + 'px';
+  sweep.style.top = (HUB.y - BEAM_R) + 'px';
+  /* Tempo und Vorlauf kommen aus ROT/LEAD statt doppelt im CSS zu stehen —
+     ein Wert im Script genügt, um den Radar schneller laufen zu lassen. */
+  sweep.style.animationDuration = ROT + 's';
+  sweep.style.animationDelay = LEAD + 's';
+  ring.style.width = ring.style.height = (BEAM_R * 2 * .62) + 'px';
+  ring.style.left = (HUB.x - BEAM_R * .62) + 'px';
+  ring.style.top = (HUB.y - BEAM_R * .62) + 'px';
+  hub.style.left = (HUB.x - 32) + 'px';
+  hub.style.top = (HUB.y - 32) + 'px';
+
+  var counter = document.getElementById('counter');
+  var rows = counter.querySelectorAll('.crow');
+  var nums = counter.querySelectorAll('.cnum');
+  var rail = document.getElementById('rail');
+  var kicker = document.getElementById('kicker');
+  var head = document.getElementById('head');
+  var sub = document.getElementById('sub');
+  var note = document.getElementById('note');
+  var srEvidence = document.getElementById('sr-evidence');
+  var hintPill = document.getElementById('hint-pill');
+  var hintLabel = document.getElementById('hint-label');
+  var count = document.getElementById('count');
+
+  /* Debug-Overlay: Polygon + Nabe über der Karte (?debug=1) */
+  if (/[?&]debug/.test(location.search)) {
+    var dbg = document.createElementNS(SVGNS, 'svg');
+    dbg.setAttribute('viewBox', '0 0 1600 900');
+    dbg.setAttribute('style', 'position:absolute;inset:0;width:1600px;height:900px;z-index:9;pointer-events:none');
+    dbg.innerHTML =
+      '<polygon points="' + GERMANY.map(function (v) { return v.join(','); }).join(' ') +
+      '" fill="none" stroke="#22FF88" stroke-width="1.5" stroke-dasharray="6 4"/>' +
+      GERMANY.map(function (v, i) {
+        return '<circle cx="' + v[0] + '" cy="' + v[1] + '" r="3" fill="#22FF88"/>' +
+          '<text x="' + (v[0] + 6) + '" y="' + (v[1] - 4) + '" fill="#22FF88" font-size="10">' + i + '</text>';
+      }).join('') +
+      '<circle cx="' + HUB.x + '" cy="' + HUB.y + '" r="5" fill="#FF5577"/>' +
+      '<circle cx="' + HUB.x + '" cy="' + HUB.y + '" r="' + BEAM_R + '" fill="none" stroke="rgba(255,85,119,.4)"/>';
+    stage.appendChild(dbg);
+  }
+
+  /* Evidenz je Schritt für Screenreader — die visuellen Ebenen sind aria-hidden */
+  function evidenceFor(step) {
+    if (step === 1) return 'Am Markt: 341 Sparkassen.';
+    if (step === 2) return 'Dazu kommen 522 Versicherungsunternehmen.';
+    if (step === 3) return 'Und über 10.000 Investmentfonds und ETFs.';
+    if (step === 4) return 'Der Weitblick-Radar prüft den gesamten Markt nach einem Maßstab — nur die Besten bleiben.';
+    if (step === 5) return 'Best Select: acht Empfehlungen aus dem ganzen Markt, geprüft nach einem Maßstab.';
+    return '';
+  }
+
+  /* ============================================================
+     RENDER — jede Ebene ist eine reine Funktion des Schritts
+     ============================================================ */
+
+  function countUp(el, target, dur) {
+    if (REDUCE) { el.textContent = fmt(target); return; }
+    var my = seq, t0 = null;
+    function frame(t) {
+      if (my !== seq) return;
+      if (t0 === null) t0 = t;
+      var p = Math.min(1, (t - t0) / dur);
+      p = 1 - Math.pow(1 - p, 3);
+      el.textContent = fmt(Math.round(target * p));
+      if (p < 1) requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function renderCounter(step, inst, dir) {
+    var on = step >= 1;
+    tx(counter, { opacity: on ? (step >= 4 ? .55 : 1) : 0 }, { duration: inst ? 0 : .9 });
+    CATS.forEach(function (cat, i) {
+      var vis = step >= i + 1;
+      if (!vis) {
+        tx(rows[i], { y: 10, opacity: 0 }, { duration: inst ? 0 : .5 });
+        return;
+      }
+      var fresh = (!inst && dir >= 0 && step === i + 1);
+      tx(rows[i], { y: 0, opacity: 1 }, { duration: inst ? 0 : .9, delay: inst ? 0 : .15 });
+      if (fresh) {
+        nums[i].textContent = '0';
+        countUp(nums[i], cat.total, i === 2 ? 2200 : 1400);
+      } else {
+        nums[i].textContent = fmt(cat.total);
+      }
+    });
+  }
+
+  function renderIcons(step, inst, dir) {
+    icons.classList.toggle('s1', step >= 1);
+    icons.classList.toggle('s2', step >= 2);
+    icons.classList.toggle('s3', step >= 3);
+    if (step < 4) {
+      icons.classList.remove('sweep', 'done');
+    } else if (inst || dir < 0 || step === 5) {
+      /* Ergebnis-Zustand ohne Choreografie */
+      icons.classList.remove('sweep');
+      icons.classList.add('done');
+    } else {
+      /* Vorwärts in Schritt 4: der Radar entscheidet */
+      icons.classList.remove('done');
+      icons.classList.add('sweep');
+    }
+  }
+
+  function renderRadar(step, inst, dir) {
+    var animatedSweep = (step === 4 && !inst && dir >= 0);
+    if (step === 4 || step === 5) {
+      tx(radar, { opacity: 1 }, { duration: inst ? 0 : .8 });
+      if (animatedSweep) {
+        radar.classList.remove('run');
+        void sweep.offsetWidth;                   /* Animation neu starten */
+        tx(sweep, { opacity: 1 }, { duration: .6, delay: .3 });
+        radar.classList.add('run');
+        /* Er verabschiedet sich erst mit dem letzten Symbol. Die Nabe bleibt. */
+        later(function () { tx(sweep, { opacity: 0 }, { duration: BEAM_FADE }); }, BEAM_OUT * 1000);
+      } else {
+        radar.classList.remove('run');
+        tx(sweep, { opacity: 0 }, { duration: inst ? 0 : .6 });
+      }
+    } else {
+      radar.classList.remove('run');
+      tx(radar, { opacity: 0 }, { duration: inst ? 0 : .7 });
+      tx(sweep, { opacity: 0 }, { duration: 0 });
+    }
+  }
+
+  var lastText = -1;
+  function renderText(step, inst) {
+    if (lastText === step) return;
+    var t = T[step];
+    function apply() {
+      kicker.textContent = t.k; head.textContent = t.h;
+      sub.textContent = t.s || '';
+      sub.style.display = t.s ? '' : 'none';
+      note.textContent = t.n || '';
+      note.style.display = t.n ? '' : 'none';
+      srEvidence.textContent = evidenceFor(step);
+      /* schwerer Auftritt: aus der Unschärfe nach oben in die Schärfe */
+      tx(rail, { y: 0, opacity: 1, blur: 0 }, { duration: inst ? 0 : 1.1 });
+    }
+    if (inst || lastText < 0) { tx(rail, { y: 0, opacity: 1, blur: 0 }, { duration: 0 }); apply(); }
+    else {
+      tx(rail, { y: -12, opacity: 0, blur: 4 }, { duration: .4, ease: [.4, 0, 1, 1] });
+      later(function () {
+        tx(rail, { y: 14, opacity: 0, blur: 7 }, { duration: 0 });
+        requestAnimationFrame(apply);
+      }, 460);
+    }
+    lastText = step;
+  }
+
+  function render(step, inst, dir) {
+    seq++;
+    if (inst) stage.classList.add('noanim');
+    renderText(step, inst);
+    renderCounter(step, inst, dir);
+    renderIcons(step, inst, dir);
+    renderRadar(step, inst, dir);
+    count.textContent = pad(step) + ' / ' + pad(LAST);
+    var restart = step === LAST;
+    hintLabel.textContent = restart ? 'Klicken für Neustart' : 'Klicken für den nächsten Schritt';
+    hintPill.classList.toggle('is-restart', restart);
+    if (inst) requestAnimationFrame(function () {
+      requestAnimationFrame(function () { stage.classList.remove('noanim'); });
+    });
+  }
+
+  /* ---------- Steuerung ---------- */
+  var step = 0, busy = false;
+  function lock(ms) {
+    busy = true;
+    setTimeout(function () { busy = false; }, REDUCE ? 120 : ms);
+  }
+  /* Sperre folgt der laufenden Choreografie — ein zweiter Klick kann keinen
+     Erzählmoment amputieren; der Radar darf bewusst früh Richtung Finale
+     verlassen werden, sobald die Auslese lesbar ist */
+  function lockFor(n, dir) {
+    if (dir < 0) return 900;    /* rückwärts: Ergebnis-Zustände, kurz sperren */
+    if (n === 4) return (LEAD + ROT + WIN_ANIM) * 1000;
+                                /* bis der letzte Gewinner (Nordwesten) steht —
+                                   vorher wäre die Aussage des Schritts
+                                   amputiert */
+    if (n === 3) return 2600;   /* 500er-Kaskade + Zähler */
+    if (n === 1 || n === 2) return 1900;
+    if (n === 5) return 1600;
+    return 700;
+  }
+  function go(n) {
+    if (busy) return;
+    if (n > LAST) {
+      lock(1300);
+      seq++;
+      tx(stage, { opacity: 0 }, { duration: .6 });
+      setTimeout(function () {
+        step = 0; lastText = -1; render(0, true, 1);
+        tx(stage, { opacity: 1 }, { duration: 1.0 });
+      }, 640);
+      return;
+    }
+    var dir = n < step ? -1 : 1;
+    step = Math.max(0, n);
+    lock(lockFor(step, dir));
+    render(step, false, dir);
+  }
+
+  document.addEventListener('click', function () { go(step + 1); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'Enter' || e.key === 'PageDown') { e.preventDefault(); go(step + 1); }
+    if (e.key === 'ArrowLeft' || e.key === 'Backspace' || e.key === 'PageUp') { e.preventDefault(); go(step - 1); }
+  });
+
+  /* Browser-Zoom darf die Bühne wirklich vergrößern (Barrierefreiheit):
+     Zoom hebt devicePixelRatio an — die Skalierung wächst mit und der
+     Viewport wird scrollbar statt die Vergrößerung wegzurechnen. */
+  var viewportEl = document.getElementById('viewport');
+  var baseDpr = window.devicePixelRatio || 1;
+  function fit() {
+    var zoom = (window.devicePixelRatio || 1) / baseDpr;
+    var s = Math.min(window.innerWidth / 1600, window.innerHeight / 900) * Math.max(1, zoom);
+    var over = 1600 * s > window.innerWidth + 1 || 900 * s > window.innerHeight + 1;
+    document.documentElement.style.overflow = over ? 'auto' : 'hidden';
+    document.body.style.overflow = over ? 'auto' : 'hidden';
+    if (over) {
+      viewportEl.style.position = 'absolute';
+      viewportEl.style.width = Math.max(window.innerWidth, Math.ceil(1600 * s)) + 'px';
+      viewportEl.style.height = Math.max(window.innerHeight, Math.ceil(900 * s)) + 'px';
+    } else {
+      viewportEl.style.position = 'fixed';
+      viewportEl.style.width = '';
+      viewportEl.style.height = '';
+    }
+    stage.style.transform = 'translate(-50%,-50%) scale(' + s + ')';
+  }
+  window.addEventListener('resize', fit);
+  fit();
+  /* ?step=N springt direkt zu einem Schritt (Probe / Screenshot);
+     &play spielt die Choreografie dieses Schritts ab statt sofort zu landen */
+  var jump = (location.search.match(/[?&]step=(\d)/) || [])[1];
+  if (jump) step = Math.min(LAST, +jump);
+  render(step, !(jump && /[?&]play/.test(location.search)), 1);
+})();
+</script>
+</body>
+</html>
