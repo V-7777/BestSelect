@@ -28,11 +28,13 @@ export default function CounterCard({ view }: { view: View }) {
       if (!row || !num) return;
       const vis = step >= i + 1;
       if (!vis) {
-        tx(row, { y: 10, opacity: 0 }, { duration: inst ? 0 : 0.5 });
+        tx(row, { y: -14, opacity: 0 }, { duration: inst ? 0 : 0.5 });
         return;
       }
       const fresh = !inst && dir >= 0 && step === i + 1;
-      tx(row, { y: 0, opacity: 1 }, { duration: inst ? 0 : 0.9, delay: inst ? 0 : 0.15 });
+      /* Landung von oben: fallen und aufsetzen (ease-out-quint, kein Wippen) */
+      tx(row, { y: 0, opacity: 1 },
+        { duration: inst ? 0 : 0.8, delay: inst ? 0 : 0.15, ease: [0.22, 1, 0.36, 1] });
       if (fresh) {
         num.textContent = '0';
         countUp(num, cat.total, cat.key === 'fonds' ? 2200 : 1400);

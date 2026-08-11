@@ -4,16 +4,17 @@ import { useEffect, useRef, type CSSProperties } from 'react';
 import { STEP_FINAL } from '@/lib/best-select/constants';
 import {
   CANVAS_X, COLS3, CRIT_C, CRIT_P, FUNNEL_OFF,
-  FUNNEL_REST, HEAD_Y, OUT_Y, PRODUCTS, PR_ROWS, SINK_Y, WINNERS, WIN_COL, WIN_P,
+  FUNNEL_REST, FUNNEL_UP, HEAD_Y, OUT2_Y, OUT_Y, PRODUCTS, PR_ROWS, SINK_Y, WINNERS, WIN_COL, WIN_P,
 } from '@/lib/best-select/funnel';
-import { STREAM } from '@/lib/best-select/stream';
 import { later, tx } from '@/lib/best-select/animate';
 import type { View } from './BestSelect';
 
 /* Trichterphase — aus Assets.html weiterentwickelt.
    Phase = step − STEP_FINAL (1…6):
-     1 Prüfstrom (Trichter + fünf Kriterien + Symbolstrom) ·
-     2 Drei bleiben übrig · 3 Blick in die Häuser · 4 Neun Tarife ·
+     1 Prüfung der neun Gewinner (Trichter + fünf Kriterien; die Aufstellung
+       und die Fälle choreografiert WinnersLineup) ·
+     2 Drei bleiben übrig (Trichter fährt hoch, Ergebnisse in Fenstermitte) ·
+     3 Blick in die Häuser · 4 Neun Tarife ·
      5 Derselbe Maßstab · 6 Ein Tarif bleibt.
    Alle Ebenen sind reine Funktionen des View-Zustands; vor der Phase (s ≤ 0)
    rendert jede in ihren verborgenen Grundzustand — Neustart inklusive. */
@@ -30,7 +31,6 @@ function prState(s: number, i: number) {
 }
 
 export default function FunnelStage({ view }: { view: View }) {
-  const streamRef = useRef<HTMLDivElement>(null);
   const wnRefs = useRef<(HTMLDivElement | null)[]>([]);
   const prRefs = useRef<(HTMLDivElement | null)[]>([]);
   const spineRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -43,22 +43,20 @@ export default function FunnelStage({ view }: { view: View }) {
     const { step, inst, dir } = view;
     const s = Math.max(0, step - STEP_FINAL);   /* 0 = vor der Phase */
 
-    /* ---- Prüfstrom: Symbole gießen sich durch den Trichter (nur CSS) ---- */
-    streamRef.current?.classList.toggle('run', s === 1 && dir >= 0 && !inst);
-
-    /* ---- Gewinner: aus dem Auslauf auf den Tisch, dann als Kopfzeile ---- */
+    /* ---- Gewinner: aus dem Auslauf in die Fenstermitte, dann als Kopfzeile ---- */
     wnRefs.current.forEach((el, i) => {
       if (!el) return;
       let t;
       if (s < 2) t = { x: CANVAS_X, y: SINK_Y, scale: 0.55, opacity: 0 };
-      else if (s === 2) t = { x: COLS3[i], y: OUT_Y, scale: 1, opacity: 1 };
+      else if (s === 2) t = { x: COLS3[i], y: OUT2_Y, scale: 1, opacity: 1 };
       else t = { x: COLS3[i], y: HEAD_Y, scale: 1, opacity: (s === 6 && i !== WIN_COL ? 0.45 : 1) };
       if (s === 2 && !inst && dir >= 0) {
-        /* Aus dem Auslauf: am Austritt schnell sichtbar, dann gebremster Fall —
-           der Trichter steht schon an der Tischkante, darum kurzer Vorlauf */
-        tx(el, { x: CANVAS_X, y: FUNNEL_REST + 250, scale: 0.5, opacity: 0 }, { duration: 0 });
-        tx(el, { opacity: 1 }, { duration: 0.45, delay: 0.8 + i * 0.35 });
-        tx(el, { x: COLS3[i], y: OUT_Y, scale: 1 }, { duration: 1.6, delay: 0.8 + i * 0.35 });
+        /* Aus dem Auslauf: erst fährt der Trichter hoch (1.4s), dann treten
+           die Ergebnisse unter dem angehobenen Auslauf aus und landen in
+           Fenstermitte — das Beste auf Augenhöhe */
+        tx(el, { x: CANVAS_X, y: FUNNEL_UP + 250, scale: 0.5, opacity: 0 }, { duration: 0 });
+        tx(el, { opacity: 1 }, { duration: 0.45, delay: 1.3 + i * 0.35 });
+        tx(el, { x: COLS3[i], y: OUT2_Y, scale: 1 }, { duration: 1.6, delay: 1.3 + i * 0.35 });
       } else {
         tx(el, t, {
           duration: inst ? 0 : (s === 3 ? 1.7 : 1.6),
@@ -128,9 +126,11 @@ export default function FunnelStage({ view }: { view: View }) {
           tx(funnel, { y: FUNNEL_REST, scale: 1, opacity: 1 }, { duration: 1.8 });
         }
       } else if (s === 2) {
-        /* Bleibt an der Tischkante — Ergebnisse treten unter dem Auslauf aus */
+        /* Fährt hoch: der Auslauf hebt sich, die Ergebnisse treten in
+           Fenstermitte aus — vorwärts 1.4s Gleiten, rückwärts aus dem Parken */
         funnel.classList.remove('recede');
-        tx(funnel, { y: FUNNEL_REST, scale: 1, opacity: 1 }, { duration: inst ? 0 : 1.6 });
+        tx(funnel, { y: FUNNEL_UP, scale: 1, opacity: 1 },
+          { duration: inst ? 0 : (dir >= 0 ? 1.4 : 1.6) });
       } else if (s === 6) {
         /* Finale: Trichter sinkt zur Tischkante zurück und wird Kulisse */
         if (inst) {
@@ -152,13 +152,14 @@ export default function FunnelStage({ view }: { view: View }) {
       }
       if (lit && dir >= 0 && !inst) {
         funnel.classList.remove('active');
-        /* Prüfstrom (s=1): Leiter startet mit dem ersten Symbol und läuft im
-           fast-Takt, der Trichter blitzt, solange der Strom fließt.
+        /* Prüfung (s=1): Leiter startet, sobald die Reihe steht, und läuft im
+           fast-Takt; der Trichter blitzt, solange die Gewinner fallen
+           (WinnersLineup: Fälle 1.9–4.58s).
            Tarif-Einsaugen (s=5): Ladebalken erst nach der letzten Karte. */
-        later(() => { funnel.classList.add('active'); }, s === 1 ? 1200 : 5000);
+        later(() => { funnel.classList.add('active'); }, s === 1 ? 1300 : 5000);
         if (s === 1) {
-          later(() => { funnel.classList.add('flash'); }, 1000);
-          later(() => { funnel.classList.remove('flash'); }, 3600);
+          later(() => { funnel.classList.add('flash'); }, 1900);
+          later(() => { funnel.classList.remove('flash'); }, 4700);
         }
       } else funnel.classList.toggle('active', lit);
     }
@@ -190,15 +191,6 @@ export default function FunnelStage({ view }: { view: View }) {
         <div key={x} className="spine" style={{ left: x }}
           ref={el => { spineRefs.current[i] = el; }} />
       ))}
-
-      <div id="stream" aria-hidden="true" ref={streamRef}>
-        {STREAM.map((p, i) => (
-          <div key={i} className={'sico ' + p.key}
-            style={{ '--x0': p.x0, '--x1': p.x1, '--d': p.d, '--dur': p.dur } as CSSProperties}>
-            <svg viewBox="0 0 16 16"><use href={p.glyph} /></svg>
-          </div>
-        ))}
-      </div>
 
       <div id="winners" aria-hidden="true">
         {WINNERS.map((w, i) => (

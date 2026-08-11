@@ -10,6 +10,7 @@ import { bump, reduced, tx } from '@/lib/best-select/animate';
 import Stage from './Stage';
 import IconGlyphs from './IconGlyphs';
 import IconsLayer from './IconsLayer';
+import WinnersLineup from './WinnersLineup';
 import Radar from './Radar';
 import FunnelStage from './FunnelStage';
 import CounterCard from './CounterCard';
@@ -38,8 +39,8 @@ function lockFor(n: number, dir: number): number {
   if (n >= 1 && n < N_CATS) return 1900;
   if (n === STEP_FINAL) return 1600;
   const f = n - STEP_FINAL;        /* Trichterphase */
-  if (f === 1) return 3200;              /* Prüfstrom: Aufstieg 1.2s + Strom bis ~3.7s */
-  if (f === 2) return 2400;              /* Drei fallen aus dem Auslauf */
+  if (f === 1) return 4900;              /* Prüfung: Aufstellung bis 1.65s, Fälle bis ~4.6s */
+  if (f === 2) return 2800;              /* Trichter fährt hoch (1.4s), drei treten aus */
   if (f === 5) return 2600;              /* Tarif-Einsaugen */
   if (f === 6) return 2900;              /* Fall + Aufstieg ins Zentrum */
   return 700;
@@ -117,6 +118,10 @@ export default function BestSelect() {
      nicht wegwischen) — der Neustart läuft nur über die Pille oder Tastatur */
   useEffect(() => {
     stageRef.current?.classList.toggle('final', view.step === LAST);
+    /* Schritte 12 und 16: Inhalte liegen auf dem hellen Kartenzentrum —
+       die untere Lese-Scrim (#scrim-low) blendet sich nur hier ein */
+    stageRef.current?.classList.toggle('lowlit',
+      view.step === STEP_FINAL + 2 || view.step === LAST);
   }, [view]);
 
   /* ?step=N springt direkt zu einem Schritt (Probe / Screenshot);
@@ -201,6 +206,7 @@ export default function BestSelect() {
       <Stage ref={stageRef}>
         <IconGlyphs />
         <IconsLayer view={view} />
+        <WinnersLineup view={view} />
         <Radar view={view} />
         <FunnelStage view={view} />
         <CounterCard view={view} />

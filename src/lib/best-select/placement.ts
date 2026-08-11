@@ -140,3 +140,7 @@ function buildIcons(): PlacedIcon[] {
 }
 
 export const ICONS: PlacedIcon[] = buildIcons();
+
+/* Die neun Gewinner, nach Karten-x sortiert — die Flugbahnen in die
+   Aufstellungs-Reihe (Schritt 11) kreuzen sich so nicht. */
+export const WINNER_ICONS: PlacedIcon[] = ICONS.filter(p => p.win).sort((a, b) => a.x - b.x);

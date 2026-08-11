@@ -67,25 +67,28 @@ const SYM = 'Darstellung symbolisch verdichtet — jedes Symbol steht für viele
 const ANON = 'Darstellung anonymisiert — die Namen nennen wir im persönlichen Gespräch.';
 export const T: StepText[] = [
   { k: 'Auswahlprozess',                   h: 'Best Select', s: 'Der ganze Markt. Eine Empfehlung.' },
-  { k: 'Schritt 01 · Bausparkassen',       h: 'Jede Bausparkasse im Blick', n: SYM },
-  { k: 'Schritt 02 · Vermögensverwalter',  h: 'Jeder Vermögensverwalter im Blick', n: SYM },
-  { k: 'Schritt 03 · Sparkassen',          h: 'Jede Sparkasse im Blick', n: SYM },
-  { k: 'Schritt 04 · Versicherer',         h: 'Jeder Versicherer im Blick', n: SYM },
-  { k: 'Schritt 05 · Bauträger',           h: 'Jeder Immobilien-Bauträger im Blick', n: SYM },
-  { k: 'Schritt 06 · Steuerberater',       h: 'Jeder Steuerberater im Blick', n: SYM },
-  { k: 'Schritt 07 · Banken',              h: 'Jedes Kreditinstitut im Blick', n: SYM },
+  { k: 'Schritt 01 · Bausparkassen',       h: 'Bausparkassen im Blick', n: SYM },
+  { k: 'Schritt 02 · Vermögensverwalter',  h: 'Vermögensverwalter im Blick', n: SYM },
+  { k: 'Schritt 03 · Sparkassen',          h: 'Sparkassen im Blick', n: SYM },
+  { k: 'Schritt 04 · Versicherer',         h: 'Versicherer im Blick', n: SYM },
+  { k: 'Schritt 05 · Bauträger',           h: 'Immobilien-Bauträger im Blick', n: SYM },
+  { k: 'Schritt 06 · Steuerberater',       h: 'Steuerberater im Blick', n: SYM },
+  { k: 'Schritt 07 · Banken',              h: 'Kreditinstitute im Blick', n: SYM },
   { k: 'Schritt 08 · Fonds & ETFs',        h: 'Der ganze Fondsmarkt',
     n: 'Darstellung symbolisch verdichtet — jedes Symbol steht für viele Anbieter bzw. Produkte.' },
   { k: 'Schritt 09 · Filter',              h: 'Der Weitblick-Radar' },
   { k: 'Schritt 10 · Best Select',         h: 'Das Beste bleibt',
     n: 'Auswahl anonymisiert — die Namen nennen wir im persönlichen Gespräch.' },
-  /* ---- Trichterphase: der ganze Markt im Best-Select-Prinzip ---- */
-  { k: 'Schritt 11 · Prüfung',             h: 'Jedes Unternehmen im Test' },
-  { k: 'Schritt 12 · Ergebnis',            h: 'Drei bleiben übrig', n: ANON },
-  { k: 'Schritt 13 · Portfolio',           h: 'Blick in die Häuser' },
-  { k: 'Schritt 14 · Tarife',              h: 'Neun Tarife' },
-  { k: 'Schritt 15 · Filter',              h: 'Derselbe Maßstab' },
-  { k: 'Schritt 16 · Best Select',         h: 'Ein Tarif bleibt' },
+  /* ---- Trichterphase: zwei Prüfungen — erst die Häuser, dann ihre Tarife.
+     Die Kicker tragen die Zwei-Phasen-Erzählung (Prüfung 1/2), damit der
+     Wechsel auf die Tarif-Ebene (Schritt 13) unübersehbar ist. ---- */
+  { k: 'Prüfung 1 von 2 · Unternehmen',    h: 'Die besten Unternehmen werden geprüft' },
+  { k: 'Prüfung 1 von 2 · Unternehmen',    h: 'Drei bleiben übrig', n: ANON },
+  { k: 'Prüfung 2 von 2 · Tarife',         h: 'Blick in die Häuser',
+    s: 'Die besten Häuser stehen fest — jetzt prüfen wir ihre Tarife nach demselben Maßstab.' },
+  { k: 'Prüfung 2 von 2 · Tarife',         h: 'Neun Tarife' },
+  { k: 'Prüfung 2 von 2 · Tarife',         h: 'Derselbe Maßstab' },
+  { k: 'Prüfung 2 von 2 · Tarife',         h: 'Ein Tarif bleibt' },
 ];
 
 export const LAST = T.length - 1;
@@ -103,7 +106,7 @@ export function evidenceFor(step: number): string {
   if (step === STEP_RADAR) return 'Der Weitblick-Radar prüft den gesamten Markt nach einem Maßstab — nur die Besten bleiben.';
   if (step === STEP_FINAL) return 'Best Select: neun Empfehlungen aus dem ganzen Markt, geprüft nach einem Maßstab.';
   const f = step - STEP_FINAL;
-  if (f === 1) return 'Der Trichter prüft jedes Unternehmen am Markt nach fünf Kriterien: ' + CRIT_C.join(', ') + '.';
+  if (f === 1) return 'Prüfung 1 von 2: Die neun besten Unternehmen durchlaufen den Trichter — fünf Kriterien: ' + CRIT_C.join(', ') + '.';
   if (f === 2) return 'Übrig bleiben: ' + WINNERS.map(w => w.n).join(', ') + '.';
   if (f === 4) {
     const tarife = (col: number) => PRODUCTS.filter(p => p.col === col)

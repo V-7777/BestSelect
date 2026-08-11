@@ -37,5 +37,10 @@ export const PR_ROWS = [-148, -72, 4];           /* abs 302 / 378 / 454 */
 export const HEAD_Y = -228;                      /* abs 222 */
 export const SINK_Y = 145;                       /* abs 595 — im Inneren des Trichters an der Tischkante */
 export const OUT_Y = 320;                        /* abs 770 — Ergebnisse unter dem Auslauf */
-export const FUNNEL_REST = 0;                    /* Auslauf endet an der Tischkante (Schritte 11 / 12 / 15 / 16) */
+export const FUNNEL_REST = 0;                    /* Auslauf endet an der Tischkante (Schritte 11 / 15 / 16) */
 export const FUNNEL_OFF = 420;                   /* Trichter unterhalb des Bildes geparkt */
+export const FUNNEL_UP = -320;                   /* Schritt 12: Trichter fährt hoch — Auslauf-Unterkante abs ≈ 374 */
+export const OUT2_Y = 0;                         /* abs 450 — Gewinner treten in Fenstermitte aus (Schritt 12) */
+export const LINE_Y = 176;                       /* Aufstellungs-Reihe der neun Gewinner (Schritt 11) */
+export const LINE_DX = 60;                       /* Reihenabstand: x = 800 + (i−4)·60 → 560…1040, alle im Trichtermund */
+export const DROP_Y = 540;                       /* Fallziel hinter dem Glas (Mundlinie abs 496) */
