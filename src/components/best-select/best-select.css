@@ -207,7 +207,8 @@ body:active #stage:not(.busy):not(.final) .hint-ico,
    gerasterte Lichtscheibe, deren Deckkraft aufblitzt — Opacity und Transform
    laufen komplett im Compositor, kein Repaint während des Umlaufs. */
 .ico::after{content:'';position:absolute;inset:0;border-radius:inherit;
-  background:rgba(203,228,255,.9);opacity:0;pointer-events:none}
+  background:radial-gradient(circle at 50% 38%,rgba(203,228,255,.9),rgba(130,188,255,.6));
+  opacity:0;pointer-events:none}
 .ico.bsp,.ico.vv,.ico.spk,.ico.vers,.ico.ibt,.ico.stb,.ico.bank{width:38px;height:38px;margin:-19px 0 0 -19px;z-index:2;
   --nbg:linear-gradient(180deg,rgba(26,62,100,.93),rgba(10,30,51,.95));
   --nsh:inset 0 1px 0 rgba(215,226,255,.24),
@@ -249,60 +250,60 @@ body:active #stage:not(.busy):not(.final) .hint-ico,
 #icons.s5 .ibt,#icons.s6 .stb,#icons.s7 .bank{opacity:1;transform:scale(1)}
 #icons.s8 .fonds{opacity:.88;transform:scale(1)}
 
-/* ---------- Radar-Durchlauf: ein Umlauf — Puls und Verlöschen in einem ---------- */
-/* Jedes Symbol blitzt auf, wenn die Kante darüberstreicht, und verglüht
-   dahinter als Restglut: erst hell, dann rasch dunkel mit langem, schwachem
-   Schweif (easeOutExpo auf der Deckkraft) — der Nachlauf des Strahls, nur
-   je Symbol. Kein Kollaps: die Glut bleibt in Grösse und Glanz stehen und
-   verliert nur Licht. Opacity fehlt bewusst im 0%-Frame: so startet die
-   Kurve beim jeweiligen Grundwert (Fonds: .88).
-   Nur transform + opacity — das Aufhellen übernimmt pingFlash auf ::after. */
-/* Radar-Ping: mit dem Start des Durchlaufs nimmt sich das Lichtermeer auf
-   .45 zurück (transition-delay 0 — der Auftritts-Stagger --in gilt hier
-   nicht). Hell ist ein Symbol NUR in dem Moment, in dem die Kante es
-   überstreicht: kurzes Aufblitzen auf volle Helligkeit bei 15% (~95 ms
-   hinter der Kante), dann verweht es. Vorher gedimmt, danach fort. */
-#icons.sweep .ico{opacity:.45;transition-delay:0s;
-  animation:pingOut .632s var(--pd) both}
+/* ---------- Radar-Durchlauf: Sonar-Ping mit Phosphor-Nachglühen ---------- */
+/* Jedes Symbol blitzt kurz und knapp auf, wenn die Kante darüberstreicht
+   (kaum Grössenzuwachs — ein Kontakt auf dem Schirm, kein Feuerwerk), und
+   verglüht dahinter wie eine Phosphorspur: rascher Abfall auf einen
+   Geisterwert, flaches Verweilen, dann Verlöschen. Opacity fehlt bewusst
+   im 0%-Frame: so startet die Kurve beim jeweiligen Grundwert (Fonds: .88).
+   Transform fehlt ab 30 %: neutral = scale(1), der spätere Klassenwechsel
+   auf .done bleibt unsichtbar. Nur transform + opacity — das Aufhellen
+   übernimmt pingFlash auf ::after. */
+/* Mit dem Start des Durchlaufs nimmt sich das Lichtermeer auf .45 zurück —
+   als bewusstes Absenken in 316 ms, nicht als Sprung (transition-delay 0:
+   der Auftritts-Stagger --in gilt hier nicht). Es ist abgeschlossen, bevor
+   der früheste Ping bei --pd = 0.632 s beginnt. */
+#icons.sweep .ico{opacity:.45;transition-duration:.316s;transition-delay:0s;
+  animation:pingOut 1.264s var(--pd) both}
 #icons.sweep .ico::after{animation:pingFlash .632s var(--pd) both}
-/* Deckkraft fehlt bewusst im 0%-Frame: der Ping startet vom gedimmten
-   Feldwert (.45) und blitzt auf 1 */
 @keyframes pingOut{
   0%  {transform:scale(1);
-       animation-timing-function:cubic-bezier(.32,.72,0,1)}
-  15% {opacity:1;transform:scale(1.5);
-       animation-timing-function:cubic-bezier(.19,1,.22,1)}
-  100%{opacity:0;transform:scale(1.08)}}
+       animation-timing-function:cubic-bezier(.32,.72,0,1)}  /* Anschlag */
+  8%  {opacity:1;transform:scale(1.08);
+       animation-timing-function:cubic-bezier(.19,1,.22,1)}  /* rascher Abfall */
+  30% {opacity:.26;transform:scale(1);
+       animation-timing-function:cubic-bezier(.4,0,.6,1)}    /* Geister-Verweilen */
+  72% {opacity:.11;
+       animation-timing-function:cubic-bezier(.32,.72,0,1)}  /* Verlöschen */
+  100%{opacity:0}}
 @keyframes pingFlash{
   0%  {opacity:0;animation-timing-function:cubic-bezier(.32,.72,0,1)}
-  15% {opacity:.85;animation-timing-function:cubic-bezier(.19,1,.22,1)}
-  45% {opacity:.12}
+  15% {opacity:.6;animation-timing-function:cubic-bezier(.19,1,.22,1)}
+  55% {opacity:.08}
   100%{opacity:0}}
 
-/* Gewinner: gleicher Ping wie alle anderen (8% ≙ Blitz-Spitze bei ~100 ms,
-   48% ≙ verweht bei ~607 ms — deckungsgleich mit pingOut), danach der
-   Wiederauftritt als Auswahl, dicht hinter der Glut her. Auch sie
-   räumt der Strahl erst ab; sonst stünde die Auswahl fest, bevor der
-   Radar an ihnen vorbeigekommen ist. Weil alles an --pd (= Strahlwinkel)
+/* Gewinner: gleicher Anschlag wie alle anderen, aber statt zu verglühen
+   RASTET er ein — ein bestätigter Kontakt. Der Umschlag auf den Gewinner-
+   Look liegt als step-start exakt im Blitz-Maximum (8 % ≙ ~101 ms, die
+   ::after-Lichtscheibe steht dort nahe ihrer Spitze): ein einziger Repaint
+   je Gewinner, kein Farb-Tween vor den Augen. Deckkraft sinkt nie unter 1,
+   kein Verschwinden/Wiederauftauchen. Weil alles an --pd (= Strahlwinkel)
    hängt, läuft die Sequenz im Uhrzeigersinn ab Norden mit: Nordost,
-   Südost, Südwest, Nordwest. Das Aufblitzen liefert auch hier pingFlash
-   (endet bei Deckkraft 0, bevor der Gewinner wieder auftaucht). */
-@keyframes winFlip{
+   Südost, Südwest, Nordwest. Der 100%-Frame ist deckungsgleich mit
+   #icons.done .win — der Klassenwechsel nach dem Umlauf bleibt unsichtbar. */
+@keyframes winLock{
   0%  {transform:scale(1);color:var(--nfg);
        background:var(--nbg);box-shadow:var(--nsh);
        animation-timing-function:cubic-bezier(.32,.72,0,1)}
-  8%  {opacity:1;transform:scale(1.5);
+  8%  {opacity:1;transform:scale(1.08);
        color:var(--nfg);background:var(--nbg);box-shadow:var(--nsh);
-       animation-timing-function:cubic-bezier(.19,1,.22,1)}
-  48% {opacity:0;transform:scale(1.08);
-       color:var(--nfg);background:var(--nbg);box-shadow:var(--nsh)}
-  /* Farbwechsel liegt im unsichtbaren Fenster — kein Umfärben vor den Augen */
-  55% {opacity:0;transform:scale(.42);color:#fff;
+       animation-timing-function:step-start}
+  9%  {opacity:1;transform:scale(1.08);color:#fff;
        background:var(--wbg);box-shadow:var(--wsh);
        animation-timing-function:cubic-bezier(.22,1,.36,1)}
   100%{opacity:1;transform:scale(var(--ws));color:#fff;
        background:var(--wbg);box-shadow:var(--wsh)}}
-#icons.sweep .win{animation:winFlip 1.264s var(--pd) both}
+#icons.sweep .win{animation:winLock 1.264s var(--pd) both}
 
 /* Ergebnis-Zustand ohne Choreografie (Sprung, Zurück-Navigation, Schritt 10) */
 #icons.done .ico{transition-delay:0s}
@@ -325,8 +326,27 @@ body:active #stage:not(.busy):not(.final) .hint-ico,
 #sweep{position:absolute;opacity:0}
 @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 /* Dauer und Vorlauf setzt die Radar-Komponente aus ROT/LEAD — hier nur die
-   Form. Ein einziger Umlauf: die Kante pingt und räumt in derselben Bewegung. */
-#radar.run #sweep{animation:spin 2.528s linear .632s 1 both;will-change:transform}
+   Form. Ein einziger Umlauf (iteration-count 1 = Default): die Kante pingt
+   und räumt in derselben Bewegung. */
+#radar.run #sweep{animation-name:spin;animation-timing-function:linear;
+  animation-fill-mode:both;will-change:transform}
+
+/* Ping-Welle: der ausgesandte Impuls des Sonars — ein Kreis, der mit dem
+   Start des Umlaufs aus der Nabe läuft und beim Ausbreiten verlischt.
+   Vorgerastert auf Strahlscheiben-Grösse, animiert werden nur transform
+   und Deckkraft (Compositor). Dauer/Vorlauf setzt die Radar-Komponente
+   aus PULSE/LEAD. */
+#pulse{position:absolute;border-radius:50%;opacity:0;pointer-events:none;
+  box-shadow:0 0 0 1.5px rgba(150,195,255,.5),0 0 30px rgba(95,163,245,.28),
+             inset 0 0 24px rgba(95,163,245,.16)}
+#radar.run #pulse{animation-name:pulseWave;animation-fill-mode:both;will-change:transform}
+/* Transform läuft in einem einzigen 0→100%-Segment mit der 0%-Kurve:
+   schnelle Front, dann auslaufend. scale(.07) ≈ Nabendurchmesser 64/940. */
+@keyframes pulseWave{
+  0%  {opacity:0;transform:scale(.07);
+       animation-timing-function:cubic-bezier(.22,1,.36,1)}
+  10% {opacity:.5;animation-timing-function:cubic-bezier(.32,.72,0,1)}
+  100%{opacity:0;transform:scale(1)}}
 
 /* Strahl: eine echte 2px-Linie von der Nabe nach aussen, kein Verlaufskeil.
    Der Verlauf regelt nur, wo sie anfängt (Nabenloch) und ausläuft. */

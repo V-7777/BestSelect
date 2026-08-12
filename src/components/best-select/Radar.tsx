@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { BEAM_FADE, BEAM_OUT, BEAM_R, HUB, LEAD, ROT, STEP_FINAL, STEP_RADAR } from '@/lib/best-select/constants';
+import { BEAM_FADE, BEAM_OUT, BEAM_R, HUB, LEAD, PULSE, ROT, STEP_FINAL, STEP_RADAR } from '@/lib/best-select/constants';
 import { later, tx } from '@/lib/best-select/animate';
 import type { View } from './BestSelect';
 
@@ -39,6 +39,16 @@ export default function Radar({ view }: { view: View }) {
 
   return (
     <div id="radar" ref={radarRef} aria-hidden="true">
+      {/* Ping-Welle: läuft unter Nachlauf/Arm/Nabe; .run startet sie mit,
+          der Reflow-Neustart und das Entfernen von .run räumen sie mit ab */}
+      <div
+        id="pulse"
+        style={{
+          width: BEAM_R * 2, height: BEAM_R * 2,
+          left: HUB.x - BEAM_R, top: HUB.y - BEAM_R,
+          animationDuration: PULSE + 's', animationDelay: LEAD + 's',
+        }}
+      />
       <div
         id="sweep"
         ref={sweepRef}

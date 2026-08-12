@@ -36,13 +36,15 @@ export const BEAT = 632;
    Erzählmoment amputieren. Jede Sperre deckt die VOLLE Choreografie ihres
    Schritts inkl. CSS-Nachläufer (Batterie-Balken, Kriterienleiter,
    Häkchen-Kaskade); Esc bleibt der bewusste Ausstieg für den Berater.
-   Der Radar sperrt bis der letzte Gewinner steht: Vorlauf + voller
-   Umlauf + Gewinner-Flip. */
+   Der Radar sperrt bis der letzte Ping verglüht und der letzte Gewinner
+   eingerastet ist: Vorlauf + voller Umlauf + Nachglüh-/Einrast-Schweif. */
 function lockFor(n: number, dir: number): number {
   if (dir < 0) return BEAT;        /* rückwärts: Ergebnis-Zustände, kurz sperren */
   if (n === STEP_RADAR) return (LEAD + ROT + WIN_ANIM) * 1000;
-                                   /* bis der letzte Gewinner (Nordwesten) steht —
-                                      vorher wäre die Aussage des Schritts amputiert */
+                                   /* 4424 ms: letzte Kreuzung 3.16s + 1.264s Schweif
+                                      (pingOut wie winLock) — alle übrigen Nachläufer
+                                      (Lichtscheibe 3.79s, Welle 1.90s, Strahl 3.48s)
+                                      enden früher */
   if (n === STEP_FONDS) return BEAT * 4;   /* 2528: Regen-Fenster 3 Takte + 632ms Auftritt */
   if (n >= 1 && n < N_CATS) return BEAT * 3;   /* 1896: längster Stagger (~1.17s) + Auftritt */
   if (n === STEP_FINAL) return BEAT * 3;       /* 1896: Schienen-Tausch + done-Übergänge */

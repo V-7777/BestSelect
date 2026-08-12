@@ -40,10 +40,14 @@ export const STEP_FINAL = N_CATS + 2;   /* Schritt 10: Best Select auf der Karte
 export const HUB = { x: 805, y: 430 };   /* Radar-Nabe ≈ geographische Mitte */
 export const BEAM_R = 470;               /* deckt den entferntesten Umrisspunkt (~450px) */
 /* Radar auf dem 632-ms-Grundtakt: Vorlauf 1 Takt, Umlauf 4 Takte,
-   Gewinner-Flip 2 Takte — die Sperre (LEAD+ROT+WIN_ANIM) ist exakt 7 Takte */
+   Nachglüh-/Einrast-Schweif 2 Takte — die Sperre (LEAD+ROT+WIN_ANIM)
+   ist exakt 7 Takte */
 export const LEAD = 0.632;               /* Radar: Vorlauf in Sekunden */
 export const ROT = 2.528;                /* Sekunden je Umlauf */
-export const WIN_ANIM = 1.264;           /* = winFlip-Dauer im CSS */
+export const WIN_ANIM = 1.264;           /* gemeinsamer 1.264s-Schweif von winLock
+                                            UND pingOut im CSS — ändert sich einer,
+                                            muss die Sperre neu hergeleitet werden */
+export const PULSE = 1.264;              /* Ping-Welle: Ausbreitung ab LEAD, 2 Takte */
 export const BEAM_FADE = 0.632;
 export const BEAM_OUT = LEAD + ROT + 0.316 - BEAM_FADE;
 
