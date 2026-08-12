@@ -30,7 +30,7 @@ export default function TextRail({ view }: { view: View }) {
     const prev = T[lastRef.current], nx = T[next];
     const apply = () => {
       setStep(next);
-      tx(rail, { y: 0, opacity: 1, blur: 0 }, { duration: view.inst ? 0 : 1.1 });
+      tx(rail, { y: 0, opacity: 1, blur: 0 }, { duration: view.inst ? 0 : 1.264 });
     };
     if (view.inst) {
       tx(rail, { y: 0, opacity: 1, blur: 0 }, { duration: 0 });
@@ -39,23 +39,24 @@ export default function TextRail({ view }: { view: View }) {
       apply();
     } else if (prev.h.endsWith(TAIL) && nx.h.endsWith(TAIL)
         && prev.n === nx.n && !prev.s && !nx.s) {
-      /* Teiltausch: nur das wechselnde Wort + Kicker — der Rest steht */
-      tx(leadRef.current, { y: -10, opacity: 0, blur: 4 }, { duration: 0.3, ease: [0.4, 0, 1, 1] });
-      tx(kickerRef.current, { opacity: 0 }, { duration: 0.25 });
+      /* Teiltausch: nur das wechselnde Wort + Kicker — der Rest steht.
+         Abgang halber Takt, Übergabe auf dem halben Takt, Auftritt 1 Takt */
+      tx(leadRef.current, { y: -10, opacity: 0, blur: 4 }, { duration: 0.316, ease: [0.4, 0, 1, 1] });
+      tx(kickerRef.current, { opacity: 0 }, { duration: 0.316 });
       later(() => {
         setStep(next);
         tx(leadRef.current, { y: 12, opacity: 0, blur: 6 }, { duration: 0 });
         requestAnimationFrame(() => {
-          tx(leadRef.current, { y: 0, opacity: 1, blur: 0 }, { duration: 0.8 });
-          tx(kickerRef.current, { opacity: 1 }, { duration: 0.5 });
+          tx(leadRef.current, { y: 0, opacity: 1, blur: 0 }, { duration: 0.632 });
+          tx(kickerRef.current, { opacity: 1 }, { duration: 0.632 });
         });
       }, 330);
     } else {
-      tx(rail, { y: -12, opacity: 0, blur: 4 }, { duration: 0.4, ease: [0.4, 0, 1, 1] });
+      tx(rail, { y: -12, opacity: 0, blur: 4 }, { duration: 0.316, ease: [0.4, 0, 1, 1] });
       later(() => {
         tx(rail, { y: 14, opacity: 0, blur: 7 }, { duration: 0 });
         requestAnimationFrame(apply);
-      }, 460);
+      }, 330);
     }
     lastRef.current = next;
   }, [view]);

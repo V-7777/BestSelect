@@ -18,21 +18,21 @@ export default function Radar({ view }: { view: View }) {
     const { step, inst, dir } = view;
     const animatedSweep = step === STEP_RADAR && !inst && dir >= 0;
     if (step === STEP_RADAR || step === STEP_FINAL) {
-      tx(radar, { opacity: 1 }, { duration: inst ? 0 : 0.8 });
+      tx(radar, { opacity: 1 }, { duration: inst ? 0 : 0.632 });
       if (animatedSweep) {
         radar.classList.remove('run');
         void sweep.offsetWidth;                   /* Animation neu starten */
-        tx(sweep, { opacity: 1 }, { duration: 0.6, delay: 0.3 });
+        tx(sweep, { opacity: 1 }, { duration: 0.632, delay: 0.316 });
         radar.classList.add('run');
         /* Er verabschiedet sich erst mit dem letzten Symbol. Die Nabe bleibt. */
         later(() => { tx(sweep, { opacity: 0 }, { duration: BEAM_FADE }); }, BEAM_OUT * 1000);
       } else {
         radar.classList.remove('run');
-        tx(sweep, { opacity: 0 }, { duration: inst ? 0 : 0.6 });
+        tx(sweep, { opacity: 0 }, { duration: inst ? 0 : 0.632 });
       }
     } else {
       radar.classList.remove('run');
-      tx(radar, { opacity: 0 }, { duration: inst ? 0 : 0.7 });
+      tx(radar, { opacity: 0 }, { duration: inst ? 0 : 0.632 });
       tx(sweep, { opacity: 0 }, { duration: 0 });
     }
   }, [view]);

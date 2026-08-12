@@ -74,16 +74,16 @@ function buildIcons(): PlacedIcon[] {
           const p = icons[i];
           /* Fonds-Punkte und Badges brauchen zueinander nur 32px (die kleinen
              Punkte liegen unter den Badges auf z1), Badges untereinander und
-             Punkte untereinander den vollen minD. Symmetrisch, weil die
-             Unternehmen als neunte Kategorie NACH dem Fonds-Regen platziert
-             werden — sonst fände ein 44px-Abstand zu 282 Punkten keinen Platz. */
+             Punkte untereinander den vollen minD. */
           const need = (cat.key === 'fonds') !== (p.cat === 'fonds') ? 32 : minD;
           const dx = p.x - x, dy = p.y - y;
           if (dx * dx + dy * dy < need * need) ok = false;
         }
       }
       if (ok) {
-        const stag = cat.stag > 0 ? placed * cat.stag : rng() * 2.0;
+        /* Fonds-Regen: Fenster = 3 Takte (632 ms) — mit dem 632-ms-Auftritt
+           endet der letzte Punkt exakt auf Takt 4 (Sperre 2528 ms) */
+        const stag = cat.stag > 0 ? placed * cat.stag : rng() * 1.896;
         const ang = (Math.atan2(x - HUB.x, -(y - HUB.y)) * 180 / Math.PI + 360) % 360;
         icons.push({ x, y, cat: cat.key, delay: stag, ang, win: false });
         placed++; fails = 0;
@@ -106,10 +106,10 @@ function buildIcons(): PlacedIcon[] {
     .forEach(p => { icons.splice(icons.indexOf(p), 1); });
 
   /* Gewinner: deterministisch, weit gestreut (Greedy-Farthest-Point) — genau
-     eine Empfehlung je Kategorie, neun insgesamt. Große Pools zuerst: der
+     eine Empfehlung je Kategorie, acht insgesamt. Große Pools zuerst: der
      erste liegt nah an der Nabe, jeder weitere maximiert den Mindestabstand
      zu allen bisherigen Gewinnern; die kleinen Kategorien wählen zuletzt. */
-  const order: CatKey[] = ['vers', 'spk', 'fonds', 'bank', 'unt', 'stb', 'ibt', 'vv', 'bsp'];
+  const order: CatKey[] = ['vers', 'spk', 'fonds', 'bank', 'stb', 'ibt', 'vv', 'bsp'];
   const chosen: PlacedIcon[] = [];
   order.forEach(function (catKey) {
     const pool = icons.filter(function (p) {
@@ -141,6 +141,6 @@ function buildIcons(): PlacedIcon[] {
 
 export const ICONS: PlacedIcon[] = buildIcons();
 
-/* Die neun Gewinner, nach Karten-x sortiert — die Flugbahnen in die
+/* Die acht Gewinner, nach Karten-x sortiert — die Flugbahnen in die
    Aufstellungs-Reihe (Schritt 11) kreuzen sich so nicht. */
 export const WINNER_ICONS: PlacedIcon[] = ICONS.filter(p => p.win).sort((a, b) => a.x - b.x);

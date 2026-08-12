@@ -8,6 +8,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { LAST, LEAD, N_CATS, ROT, STEP_FINAL, STEP_FONDS, STEP_RADAR, WIN_ANIM } from '@/lib/best-select/constants';
 import { bump, reduced, tx } from '@/lib/best-select/animate';
 import Stage from './Stage';
+import MapFallback from './MapFallback';
 import IconGlyphs from './IconGlyphs';
 import IconsLayer from './IconsLayer';
 import WinnersLineup from './WinnersLineup';
@@ -27,23 +28,33 @@ export interface View {
   n: number;       /* Render-Token: erzwingt Effekte auch bei gleichem Schritt */
 }
 
+/* Grundtakt der Präsentation: jede Sperre der Trichterphase ist ein
+   Vielfaches von 632 ms. */
+export const BEAT = 632;
+
 /* Sperre folgt der laufenden Choreografie — ein zweiter Klick kann keinen
-   Erzählmoment amputieren. Der Radar sperrt bis der letzte Gewinner steht:
-   Vorlauf + voller Umlauf + Gewinner-Flip. */
+   Erzählmoment amputieren. Jede Sperre deckt die VOLLE Choreografie ihres
+   Schritts inkl. CSS-Nachläufer (Batterie-Balken, Kriterienleiter,
+   Häkchen-Kaskade); Esc bleibt der bewusste Ausstieg für den Berater.
+   Der Radar sperrt bis der letzte Gewinner steht: Vorlauf + voller
+   Umlauf + Gewinner-Flip. */
 function lockFor(n: number, dir: number): number {
-  if (dir < 0) return 900;         /* rückwärts: Ergebnis-Zustände, kurz sperren */
+  if (dir < 0) return BEAT;        /* rückwärts: Ergebnis-Zustände, kurz sperren */
   if (n === STEP_RADAR) return (LEAD + ROT + WIN_ANIM) * 1000;
                                    /* bis der letzte Gewinner (Nordwesten) steht —
                                       vorher wäre die Aussage des Schritts amputiert */
-  if (n === STEP_FONDS) return 2600;     /* Fonds-Kaskade */
-  if (n >= 1 && n < N_CATS) return 1900;
-  if (n === STEP_FINAL) return 1600;
+  if (n === STEP_FONDS) return BEAT * 4;   /* 2528: Regen-Fenster 3 Takte + 632ms Auftritt */
+  if (n >= 1 && n < N_CATS) return BEAT * 3;   /* 1896: längster Stagger (~1.17s) + Auftritt */
+  if (n === STEP_FINAL) return BEAT * 3;       /* 1896: Schienen-Tausch + done-Übergänge */
   const f = n - STEP_FINAL;        /* Trichterphase */
-  if (f === 1) return 4900;              /* Prüfung: Aufstellung bis 1.65s, Fälle bis ~4.6s */
-  if (f === 2) return 2800;              /* Trichter fährt hoch (1.4s), drei treten aus */
-  if (f === 5) return 2600;              /* Tarif-Einsaugen */
-  if (f === 6) return 2900;              /* Fall + Aufstieg ins Zentrum */
-  return 700;
+  if (f === 1) return BEAT * 9;    /* 5688: Aufstellung bis ~2.7s, Fälle bis ~5.39s, Flash bis ~5.37s */
+  if (f === 2) return BEAT * 6;    /* 3792: Trichter hoch (1.264s), drei treten bis ~3.28s aus */
+  if (f === 3) return BEAT * 5;    /* 3160: Kopfzeile gleitet bis ~2.69s */
+  if (f === 4) return BEAT * 6;    /* 3792: Karten bis ~3.17s, Batterien laden bis ~3.33s */
+  if (f === 5) return BEAT * 8;    /* 5056: Einsaugen bis ~4.75s, Leiter endet exakt auf Takt 8 */
+  return BEAT * 15;                /* 9480: Finale-Crescendo — Häkchen bis ~7.9s, Lichtlauf
+                                      über die Siegerkarte Takt 13–15; erst danach wird
+                                      Weiter (= Neustart) wieder angenommen */
 }
 
 export default function BestSelect() {
@@ -69,13 +80,13 @@ export default function BestSelect() {
   const go = useCallback((n: number) => {
     if (busyRef.current) return;
     if (n > LAST) {
-      lock(1300);
+      lock(BEAT * 3);              /* 1896: Ausblenden 1 Takt + Einblenden 2 Takte, exakt */
       bump();
-      tx(stageRef.current, { opacity: 0 }, { duration: 0.6 });
+      tx(stageRef.current, { opacity: 0 }, { duration: 0.632 });
       setTimeout(() => {
         setView(v => ({ step: 0, inst: true, dir: 1, n: v.n + 1 }));
-        tx(stageRef.current, { opacity: 1 }, { duration: 1.0 });
-      }, 640);
+        tx(stageRef.current, { opacity: 1 }, { duration: 1.264 });
+      }, BEAT);
       return;
     }
     const dir: 1 | -1 = n < viewRef.current.step ? -1 : 1;
@@ -153,6 +164,15 @@ export default function BestSelect() {
     window.history.replaceState(null, '', url);
   }, [view.step, view.n]);
 
+  /* Nothalt: lädt die Nachtkarte nicht (Asset fehlt auf dem Präsentations-
+     rechner, leerer Offline-Cache), trägt die Bühne .nomap — der gemessene
+     Umriss (MapFallback) wird zum Boden, kein Symbol schwebt im Leeren */
+  useEffect(() => {
+    const probe = new Image();
+    probe.onerror = () => stageRef.current?.classList.add('nomap');
+    probe.src = '/germany-night.png';
+  }, []);
+
   /* Sofort-Render: für einen Frame alle CSS-Übergänge kappen */
   useEffect(() => {
     if (!view.inst) return;
@@ -166,14 +186,38 @@ export default function BestSelect() {
 
   /* Browser-Zoom darf die Bühne wirklich vergrößern (Barrierefreiheit):
      Zoom hebt devicePixelRatio an — die Skalierung wächst mit und der
-     Viewport wird scrollbar statt die Vergrößerung wegzurechnen. */
+     Viewport wird scrollbar statt die Vergrößerung wegzurechnen.
+     Aber: auch ein Monitorwechsel ändert devicePixelRatio (Laptop 2× →
+     Beamer 1× — der Ernstfall im Termin). Dann wird die Basis neu geeicht
+     statt skaliert, sonst halbiert/verdoppelt sich die Bühne beim Rüberziehen.
+     Unterscheidung über die Bildschirm-Identität: Zoom lässt in Chromium
+     die CSS-Maße (screen.*) stehen, in Firefox die physischen Maße
+     (screen.* · dpr); die availLeft/Top-Origin trennt gleichgroße Monitore.
+     Ändern sich CSS- UND Physik-Signatur, ist es ein anderer Bildschirm. */
   useEffect(() => {
     const viewport = viewportRef.current, stage = stageRef.current;
     if (!viewport || !stage) return;
-    const baseDpr = window.devicePixelRatio || 1;
+    const screenKeys = () => {
+      const d = window.devicePixelRatio || 1;
+      const scr = window.screen as Screen & { availLeft?: number; availTop?: number };
+      const l = scr.availLeft ?? 0, t = scr.availTop ?? 0;
+      const r = (v: number) => Math.round(v / 8);   /* Rundungsjitter schlucken */
+      return {
+        css: `${scr.width},${scr.height},${l},${t}`,
+        phys: `${r(scr.width * d)},${r(scr.height * d)},${r(l * d)},${r(t * d)}`,
+      };
+    };
+    let baseDpr = window.devicePixelRatio || 1;
+    let last = { dpr: baseDpr, ...screenKeys() };
     function fit() {
       if (!viewport || !stage) return;
-      const zoom = (window.devicePixelRatio || 1) / baseDpr;
+      const dpr = window.devicePixelRatio || 1;
+      const k = screenKeys();
+      if (dpr !== last.dpr && k.css !== last.css && k.phys !== last.phys) {
+        baseDpr = dpr;             /* anderer Bildschirm: neu eichen, Zoom = 1 */
+      }
+      last = { dpr, ...k };
+      const zoom = dpr / baseDpr;
       const s = Math.min(window.innerWidth / 1600, window.innerHeight / 900) * Math.max(1, zoom);
       const over = 1600 * s > window.innerWidth + 1 || 900 * s > window.innerHeight + 1;
       document.documentElement.style.overflow = over ? 'auto' : 'hidden';
@@ -189,9 +233,23 @@ export default function BestSelect() {
       }
       stage.style.transform = 'translate(-50%,-50%) scale(' + s + ')';
     }
+    /* resize feuert beim Monitorwechsel nicht in jedem Browser — eine
+       matchMedia-Kette auf die jeweils aktuelle Auflösung schließt die Lücke
+       und wird nach jedem dpr-Wechsel neu gespannt */
+    let mq: MediaQueryList | null = null;
+    const onDprChange = () => { fit(); armDprWatch(); };
+    const armDprWatch = () => {
+      mq?.removeEventListener('change', onDprChange);
+      mq = window.matchMedia(`(resolution: ${window.devicePixelRatio || 1}dppx)`);
+      mq.addEventListener('change', onDprChange);
+    };
     window.addEventListener('resize', fit);
+    armDprWatch();
     fit();
-    return () => window.removeEventListener('resize', fit);
+    return () => {
+      window.removeEventListener('resize', fit);
+      mq?.removeEventListener('change', onDprChange);
+    };
   }, []);
 
   return (
@@ -204,6 +262,7 @@ export default function BestSelect() {
       }}
     >
       <Stage ref={stageRef}>
+        <MapFallback />
         <IconGlyphs />
         <IconsLayer view={view} />
         <WinnersLineup view={view} />

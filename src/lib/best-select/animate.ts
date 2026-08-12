@@ -1,5 +1,10 @@
 /* Animations-Wrapper um Motion + Sequenz-Token für abbrechbare Verzögerungen.
-   Portiert die tx()/later()/countUp()-Helfer aus best-select-v3.html. */
+   Portiert die tx()/later()/countUp()-Helfer aus best-select-v3.html.
+
+   Grundtakt: alle Dauern liegen auf dem 632-ms-Raster — Hauptbewegungen als
+   Vielfache (632 / 1264 / 1896 / 2528 …), Mikro-Timings als musikalische
+   Unterteilungen (158 / 316 / 474). Verzögerungen, die Takt setzen, ebenso;
+   Stagger je Element behalten ihre Proportionen. */
 
 import { animate } from 'motion';
 
@@ -27,7 +32,7 @@ export interface TxOpts { duration?: number; delay?: number; ease?: [number, num
    Schritt neu gesetzt wird. Nie auf der Symbol-Ebene verwenden. */
 export function tx(el: Element | null, p: TxProps, o: TxOpts = {}): void {
   if (!el) return;
-  const d = reduced() ? 0 : (o.duration === undefined ? 1.5 : o.duration);
+  const d = reduced() ? 0 : (o.duration === undefined ? 1.264 : o.duration);
   const dl = reduced() ? 0 : (o.delay || 0);
   const t: Record<string, number | string> = {};
   if (p.x !== undefined) t.x = p.x;

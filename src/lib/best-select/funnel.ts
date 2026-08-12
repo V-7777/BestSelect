@@ -6,11 +6,11 @@
 export const CRIT_C = ['Service & Regulierung', 'Bestandsführung', 'Bilanzqualität', 'Finanzstärke', 'Beitrag'];
 export const CRIT_P = ['Leistungsumfang', 'Bedingungswerk', 'Flexibilität', 'Beitrag', 'Rating'];
 
-export interface Winner { n: string; mono: string }
+export interface Winner { n: string }
 export const WINNERS: Winner[] = [
-  { n: 'Anbieter A', mono: 'A' },
-  { n: 'Anbieter B', mono: 'B' },
-  { n: 'Anbieter C', mono: 'C' },
+  { n: 'Unternehmen A' },
+  { n: 'Unternehmen B' },
+  { n: 'Unternehmen C' },
 ];
 
 /* 3 Tarife je Anbieter, Spalte = col, Zeile = row.
@@ -41,6 +41,6 @@ export const FUNNEL_REST = 0;                    /* Auslauf endet an der Tischka
 export const FUNNEL_OFF = 420;                   /* Trichter unterhalb des Bildes geparkt */
 export const FUNNEL_UP = -320;                   /* Schritt 12: Trichter fährt hoch — Auslauf-Unterkante abs ≈ 374 */
 export const OUT2_Y = 0;                         /* abs 450 — Gewinner treten in Fenstermitte aus (Schritt 12) */
-export const LINE_Y = 176;                       /* Aufstellungs-Reihe der neun Gewinner (Schritt 11) */
-export const LINE_DX = 60;                       /* Reihenabstand: x = 800 + (i−4)·60 → 560…1040, alle im Trichtermund */
+export const LINE_Y = 176;                       /* Aufstellungs-Reihe der acht Gewinner (Schritt 11) */
+export const LINE_DX = 60;                       /* Reihenabstand: x = 800 + (i−3,5)·60 → 590…1010, alle im Trichtermund */
 export const DROP_Y = 540;                       /* Fallziel hinter dem Glas (Mundlinie abs 496) */

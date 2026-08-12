@@ -3,7 +3,7 @@
 
 import { CRIT_C, CRIT_P, PRODUCTS, WINNERS, WIN_COL } from './funnel';
 
-export type CatKey = 'bsp' | 'vv' | 'spk' | 'vers' | 'ibt' | 'stb' | 'bank' | 'fonds' | 'unt';
+export type CatKey = 'bsp' | 'vv' | 'spk' | 'vers' | 'ibt' | 'stb' | 'bank' | 'fonds';
 
 export interface Cat {
   key: CatKey;
@@ -15,15 +15,11 @@ export interface Cat {
   pad: number;   /* halber Symbolradius: so weit muss ringsum noch Deutschland liegen */
   stag: number;  /* Auftritts-Stagger in s je Symbol · 0 = zufällig (Fonds-Regen) */
   glyph: string;
-  winnerOnly?: true;  /* kein eigener Schritt, keine Zählerzeile — nur der Gewinner-Badge im Radar */
 }
 
 /* 1 Symbol ≈ div reale Anbieter/Produkte (38→4 · 46→5 · 341→17 · 522→26 ·
-   700→10 · 1171→14 · 1400→18 · 10000→282 · 3,4 Mio→17). Reihenfolge =
-   Erzählreihenfolge: aufsteigend nach Marktgröße; der Fondsmarkt bleibt das
-   Produkt-Maximum. Die Unternehmen sind kartenexklusiv (winnerOnly): kein
-   eigener Schritt, keine Zählerzeile — total/div bleiben als Platzierungs-
-   Input (3,4 Mio → 17 Symbole, aus denen der neunte Gewinner gewählt wird).
+   700→10 · 1171→14 · 1400→18 · 10000→282). Reihenfolge = Erzählreihenfolge:
+   aufsteigend nach Marktgröße; der Fondsmarkt bleibt das Produkt-Maximum.
    Bei Rucklern auf schwacher Hardware die div-Werte erhöhen. */
 export const CATS: Cat[] = [
   { key: 'bsp',   label: 'Bausparkassen',            total: 38,      div: 10,     seed: 404, min: 50, pad: 15, stag: 0.18,  glyph: '#g-home'    },
@@ -34,24 +30,22 @@ export const CATS: Cat[] = [
   { key: 'stb',   label: 'Steuerberater',            total: 1171,    div: 85,     seed: 707, min: 44, pad: 15, stag: 0.07,  glyph: '#g-percent' },
   { key: 'bank',  label: 'Banken & Kreditinstitute', total: 1400,    div: 78,     seed: 808, min: 44, pad: 15, stag: 0.055, glyph: '#g-euro'    },
   { key: 'fonds', label: 'Investmentfonds & ETFs',   total: 10000,   div: 35.5,   seed: 303, min: 22, pad: 10, stag: 0,     glyph: '#g-chart'   },
-  { key: 'unt',   label: 'Unternehmen',              total: 3400000, div: 200000, seed: 909, min: 44, pad: 15, stag: 0.07,  glyph: '#g-org', winnerOnly: true },
 ];
 
-/* Nur diese Kategorien tragen Schritte, Zählerzeilen und Auftrittsklassen */
-export const STEP_CATS = CATS.filter(c => !c.winnerOnly);
-
-export const N_CATS = STEP_CATS.length;
-export const STEP_FONDS = STEP_CATS.findIndex(c => c.key === 'fonds') + 1;
+export const N_CATS = CATS.length;
+export const STEP_FONDS = CATS.findIndex(c => c.key === 'fonds') + 1;
 export const STEP_RADAR = N_CATS + 1;   /* Schritt 9: der Radar entscheidet */
 export const STEP_FINAL = N_CATS + 2;   /* Schritt 10: Best Select auf der Karte */
 
 export const HUB = { x: 805, y: 430 };   /* Radar-Nabe ≈ geographische Mitte */
 export const BEAM_R = 470;               /* deckt den entferntesten Umrisspunkt (~450px) */
-export const LEAD = 0.8;                 /* Radar: Vorlauf in Sekunden */
-export const ROT = 2.8;                  /* Sekunden je Umlauf */
-export const WIN_ANIM = 1.45;            /* = winFlip-Dauer im CSS */
-export const BEAM_FADE = 0.7;
-export const BEAM_OUT = LEAD + ROT + 0.25 - BEAM_FADE;
+/* Radar auf dem 632-ms-Grundtakt: Vorlauf 1 Takt, Umlauf 4 Takte,
+   Gewinner-Flip 2 Takte — die Sperre (LEAD+ROT+WIN_ANIM) ist exakt 7 Takte */
+export const LEAD = 0.632;               /* Radar: Vorlauf in Sekunden */
+export const ROT = 2.528;                /* Sekunden je Umlauf */
+export const WIN_ANIM = 1.264;           /* = winFlip-Dauer im CSS */
+export const BEAM_FADE = 0.632;
+export const BEAM_OUT = LEAD + ROT + 0.316 - BEAM_FADE;
 
 export interface StepText {
   k: string;
@@ -66,7 +60,7 @@ export interface StepText {
 const SYM = 'Darstellung symbolisch verdichtet — jedes Symbol steht für viele Anbieter.';
 const ANON = 'Darstellung anonymisiert — die Namen nennen wir im persönlichen Gespräch.';
 export const T: StepText[] = [
-  { k: 'Auswahlprozess',                   h: 'Best Select', s: 'Der ganze Markt. Eine Empfehlung.' },
+  { k: 'Auswahlprozess',                   h: 'Weitblick Best Select', s: 'Der ganze Markt. Eine Empfehlung.' },
   { k: 'Schritt 01 · Bausparkassen',       h: 'Bausparkassen im Blick', n: SYM },
   { k: 'Schritt 02 · Vermögensverwalter',  h: 'Vermögensverwalter im Blick', n: SYM },
   { k: 'Schritt 03 · Sparkassen',          h: 'Sparkassen im Blick', n: SYM },
@@ -79,13 +73,16 @@ export const T: StepText[] = [
   { k: 'Schritt 09 · Filter',              h: 'Der Weitblick-Radar' },
   { k: 'Schritt 10 · Best Select',         h: 'Das Beste bleibt',
     n: 'Auswahl anonymisiert — die Namen nennen wir im persönlichen Gespräch.' },
-  /* ---- Trichterphase: zwei Prüfungen — erst die Häuser, dann ihre Tarife.
+  /* ---- Trichterphase: zwei Prüfungen — erst die Unternehmen, dann ihre Tarife.
      Die Kicker tragen die Zwei-Phasen-Erzählung (Prüfung 1/2), damit der
      Wechsel auf die Tarif-Ebene (Schritt 13) unübersehbar ist. ---- */
   { k: 'Prüfung 1 von 2 · Unternehmen',    h: 'Die besten Unternehmen werden geprüft' },
   { k: 'Prüfung 1 von 2 · Unternehmen',    h: 'Drei bleiben übrig', n: ANON },
-  { k: 'Prüfung 2 von 2 · Tarife',         h: 'Blick in die Häuser',
-    s: 'Die besten Häuser stehen fest — jetzt prüfen wir ihre Tarife nach demselben Maßstab.' },
+  /* Unterzeile dreizeilig gebrochen (\n, .sub ist pre-line): auf Kopfzeilen-
+     Höhe steht ab x 370 die Karte „Unternehmen A" — die Zeilen müssen davor
+     enden */
+  { k: 'Prüfung 2 von 2 · Tarife',         h: 'Blick in die Unternehmen',
+    s: 'Die besten Unternehmen stehen\nfest — jetzt prüfen wir ihre\nTarife nach demselben Maßstab.' },
   { k: 'Prüfung 2 von 2 · Tarife',         h: 'Neun Tarife' },
   { k: 'Prüfung 2 von 2 · Tarife',         h: 'Derselbe Maßstab' },
   { k: 'Prüfung 2 von 2 · Tarife',         h: 'Ein Tarif bleibt' },
@@ -104,10 +101,11 @@ export function evidenceFor(step: number): string {
   if (step === 7) return 'Dazu kommen 1.400 Banken und Kreditinstitute.';
   if (step === 8) return 'Und über 10.000 Investmentfonds und ETFs.';
   if (step === STEP_RADAR) return 'Der Weitblick-Radar prüft den gesamten Markt nach einem Maßstab — nur die Besten bleiben.';
-  if (step === STEP_FINAL) return 'Best Select: neun Empfehlungen aus dem ganzen Markt, geprüft nach einem Maßstab.';
+  if (step === STEP_FINAL) return 'Best Select: acht Empfehlungen aus dem ganzen Markt, geprüft nach einem Maßstab.';
   const f = step - STEP_FINAL;
-  if (f === 1) return 'Prüfung 1 von 2: Die neun besten Unternehmen durchlaufen den Trichter — fünf Kriterien: ' + CRIT_C.join(', ') + '.';
+  if (f === 1) return 'Prüfung 1 von 2: Die acht besten Unternehmen durchlaufen den Trichter — fünf Kriterien: ' + CRIT_C.join(', ') + '.';
   if (f === 2) return 'Übrig bleiben: ' + WINNERS.map(w => w.n).join(', ') + '.';
+  if (f === 3) return 'Prüfung 2 von 2: Der Blick geht in die Unternehmen — jetzt werden die Tarife der drei Besten geprüft.';
   if (f === 4) {
     const tarife = (col: number) => PRODUCTS.filter(p => p.col === col)
       .map(p => p.n + ' ' + p.v + ' von 3').join(', ');

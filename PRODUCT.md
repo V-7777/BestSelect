@@ -29,7 +29,7 @@ Authoritative, premium-editorial, calm confidence. "High-end broadsheet" clarity
 2. **One continuous scene, not slides** — every step transforms the same stage; objects persist and move rather than being replaced.
 3. **Scale then rigor** — first make the market feel overwhelming (density, counters), then make the filter feel inevitable (one sweep, few winners).
 4. **Choreographed, deterministic, repeatable** — the presentation must play identically every run and survive back-navigation; no randomness the presenter can't rehearse against.
-5. **Premium restraint** — Abyssal/Azure blue palette, glass used sparingly and purposefully, serif/sans editorial pairing (DM Serif Display + Inter).
+5. **Premium restraint** — Abyssal/Azure blue palette, glass used sparingly and purposefully, characterful grotesk + humanist sans pairing: Selecta (licensed, installed on the presentation machine; Schibsted Grotesk is the designed self-hosted fallback) for headlines, Inter for instrument text.
 
 ## Accessibility & Inclusion
 

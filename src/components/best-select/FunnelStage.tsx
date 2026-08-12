@@ -11,10 +11,10 @@ import type { View } from './BestSelect';
 
 /* Trichterphase — aus Assets.html weiterentwickelt.
    Phase = step − STEP_FINAL (1…6):
-     1 Prüfung der neun Gewinner (Trichter + fünf Kriterien; die Aufstellung
+     1 Prüfung der acht Gewinner (Trichter + fünf Kriterien; die Aufstellung
        und die Fälle choreografiert WinnersLineup) ·
      2 Drei bleiben übrig (Trichter fährt hoch, Ergebnisse in Fenstermitte) ·
-     3 Blick in die Häuser · 4 Neun Tarife ·
+     3 Blick in die Unternehmen · 4 Neun Tarife ·
      5 Derselbe Maßstab · 6 Ein Tarif bleibt.
    Alle Ebenen sind reine Funktionen des View-Zustands; vor der Phase (s ≤ 0)
    rendert jede in ihren verborgenen Grundzustand — Neustart inklusive. */
@@ -51,16 +51,21 @@ export default function FunnelStage({ view }: { view: View }) {
       else if (s === 2) t = { x: COLS3[i], y: OUT2_Y, scale: 1, opacity: 1 };
       else t = { x: COLS3[i], y: HEAD_Y, scale: 1, opacity: (s === 6 && i !== WIN_COL ? 0.45 : 1) };
       if (s === 2 && !inst && dir >= 0) {
-        /* Aus dem Auslauf: erst fährt der Trichter hoch (1.4s), dann treten
-           die Ergebnisse unter dem angehobenen Auslauf aus und landen in
-           Fenstermitte — das Beste auf Augenhöhe */
-        tx(el, { x: CANVAS_X, y: FUNNEL_UP + 250, scale: 0.5, opacity: 0 }, { duration: 0 });
-        tx(el, { opacity: 1 }, { duration: 0.45, delay: 1.3 + i * 0.35 });
-        tx(el, { x: COLS3[i], y: OUT2_Y, scale: 1 }, { duration: 1.6, delay: 1.3 + i * 0.35 });
+        /* Aus dem Auslauf: erst fährt der Trichter hoch (1.4s). Die Karten
+           warten klein UND verdeckt im Spout (abs ≈ 355, Spout 336–374,
+           Breite 60px — Scale .22 ≈ 57px passt dahinter), werden erst
+           sichtbar geschaltet, wenn der Korpus sie überdeckt, und treten
+           dann wachsend unter dem Auslauf aus — physisch ausgespuckt statt
+           eingeblendet. Seed → later(50): Motion-Store-Muster, s. Lineup. */
+        tx(el, { x: CANVAS_X, y: FUNNEL_UP + 225, scale: 0.22, opacity: 0 }, { duration: 0 });
+        later(() => {
+          tx(el, { opacity: 1 }, { duration: 0, delay: 1.264 });
+          tx(el, { x: COLS3[i], y: OUT2_Y, scale: 1 }, { duration: 1.264, delay: 1.264 + i * 0.35 });
+        }, 50);
       } else {
         tx(el, t, {
-          duration: inst ? 0 : (s === 3 ? 1.7 : 1.6),
-          delay: inst ? 0 : (s === 3 ? 0.5 + i * 0.16 : 0),
+          duration: inst ? 0 : 1.896,
+          delay: inst ? 0 : (s === 3 ? 0.474 + i * 0.16 : 0),
         });
       }
       el.classList.toggle('glow', s === 2);
@@ -73,28 +78,46 @@ export default function FunnelStage({ view }: { view: View }) {
       if (!el) return;
       if (prIntake) {
         tx(el, prState(4, i), { duration: 0 });
-        later(() => { tx(el, prState(5, i), { duration: 1.7, delay: i * 0.08 }); }, 2200);
+        later(() => { tx(el, prState(5, i), { duration: 1.896, delay: i * 0.08 }); }, 2212);
       } else if (s === 6 && i === WIN_P && !inst) {
-        /* Zwei Akte: Fall aus dem Auslauf, dann Aufstieg ins Zentrum */
-        tx(el, { x: CANVAS_X, y: OUT_Y, scale: 1.15, opacity: 1 }, { duration: 1.8, delay: 0.6 });
-        later(() => { tx(el, prState(6, i), { duration: 2.0 }); }, 2600);
+        /* Reine Bewegung: Endgröße steht fest, BEVOR das Glas sich lichtet
+           (t=0, Korpus noch deckend) — danach nur noch Translation: Fall
+           aus dem Auslauf (Takt 1–4), Aufstieg ins Zentrum (Takt 4–7).
+           Kein Größen-, kein Farbwechsel im Flug. */
+        tx(el, { x: CANVAS_X, y: SINK_Y, scale: 1.4, opacity: 1 }, { duration: 0 });
+        tx(el, { y: OUT_Y }, { duration: 1.896, delay: 0.632 });
+        later(() => { tx(el, prState(6, i), { duration: 1.896 }); }, 2528);
       } else {
         tx(el, prState(s, i), {
-          duration: inst ? 0 : 1.6,
-          delay: inst ? 0 : (s === 4 ? 0.45 + i * 0.1 : 0),
+          duration: inst ? 0 : 1.896,
+          delay: inst ? 0 : (s === 4 ? 0.474 + i * 0.1 : 0),
         });
       }
       if (s === 6 && i === WIN_P) {
-        if (inst) el.classList.add('glow');
-        else later(() => { el.classList.add('glow'); }, 2600);
-      } else el.classList.remove('glow');
+        /* front: beim Aufstieg vor das stehende Trichterglas (z2) heben —
+           während des Falls bleibt die Karte dahinter verschluckt.
+           shine (Takt 13): einmaliger Lichtlauf über die Karte, NACHDEM
+           das letzte Häkchen (Rating, ~7.9s) gelandet ist — kein
+           Endzustand, darum nicht im inst-Pfad. */
+        if (inst) {
+          el.classList.add('glow'); el.classList.add('front'); el.classList.remove('shine');
+        } else {
+          /* glow erst bei ANKUNFT (Takt 7): zündet der Bloom schon beim
+             Aufstieg, blitzt die Karte im Flug weiß auf der dunklen
+             Bühne — der Flug bleibt nüchternes Glas, das Licht gehört
+             dem Ankommen. */
+          later(() => { el.classList.add('front'); }, 2528);
+          later(() => { el.classList.add('glow'); }, 4424);
+          later(() => { el.classList.add('shine'); }, 8216);
+        }
+      } else { el.classList.remove('glow'); el.classList.remove('front'); el.classList.remove('shine'); }
       if (s >= 4) {
+        /* Ladezustand bleibt ab Schritt 14 stehen — auch im Finale kein
+           Leeren/Wiederfüllen: die Batterie ist Teil des Kartenzustands,
+           nicht der Choreografie */
         if (inst) el.classList.add('charged');
-        else if (s === 4) later(() => { el.classList.add('charged'); }, 850 + i * 160);
-        else if (s === 6 && i === WIN_P) {
-          el.classList.remove('charged');
-          later(() => { el.classList.add('charged'); }, 1300);
-        } else el.classList.add('charged');
+        else if (s === 4) later(() => { el.classList.add('charged'); }, 790 + i * 160);
+        else el.classList.add('charged');
       } else el.classList.remove('charged');
     });
 
@@ -102,7 +125,7 @@ export default function FunnelStage({ view }: { view: View }) {
     const showSpines = s === 3 || s === 4;
     spineRefs.current.forEach(el => {
       tx(el, { opacity: showSpines ? 1 : 0 },
-        { duration: inst ? 0 : 1.1, delay: inst ? 0 : (showSpines ? 0.8 : 0) });
+        { duration: inst ? 0 : 1.264, delay: inst ? 0 : (showSpines ? 0.79 : 0) });
     });
 
     /* ---- Trichter: hochfahren, laden, zur Tischkante, Kulisse ---- */
@@ -111,55 +134,79 @@ export default function FunnelStage({ view }: { view: View }) {
       const set = s >= 4 ? CRIT_P : CRIT_C;
       critRefs.current.forEach((el, i) => { if (el) el.textContent = set[i]; });
       const lit = s === 1 || s === 5;
-      /* fast: Kriterienleiter im Prüfstrom-Takt · flash setzt nur die
-         Vorwärts-Choreografie unten — hier immer zurück auf den Endzustand */
-      funnel.classList.toggle('fast', s === 1);
+      /* fast: Kriterienleiter im Prüfstrom-Takt — in beiden Prüfungen ·
+         flash setzt nur die Vorwärts-Choreografie unten — hier immer
+         zurück auf den Endzustand */
+      funnel.classList.toggle('fast', lit);
       funnel.classList.remove('flash');
       if (lit) {
-        /* Die Maschine fährt von unten hoch an die Tischkante */
+        /* Die Maschine fährt von unten hoch an die Tischkante. Prüfung 1
+           steigt physisch aus dem Parkstand (Schritt 10 hat sie geladen);
+           Prüfung 2 blendet sich beim Aufstieg ein — in den Schritten 13/14
+           existiert sie sichtbar nicht. */
         funnel.classList.remove('recede');
         if (inst) tx(funnel, { y: FUNNEL_REST, scale: 1, opacity: 1 }, { duration: 0 });
         else if (dir >= 0) {
-          tx(funnel, { y: FUNNEL_OFF, scale: 1, opacity: 1 }, { duration: 0 });
-          tx(funnel, { y: FUNNEL_REST }, { duration: s === 1 ? 1.2 : 2.0 });
+          tx(funnel, { y: FUNNEL_OFF, scale: 1, opacity: s === 1 ? 1 : 0 }, { duration: 0 });
+          tx(funnel, { y: FUNNEL_REST, opacity: 1 }, { duration: s === 1 ? 1.264 : 1.896 });
         } else {
-          tx(funnel, { y: FUNNEL_REST, scale: 1, opacity: 1 }, { duration: 1.8 });
+          tx(funnel, { y: FUNNEL_REST, scale: 1, opacity: 1 }, { duration: 1.896 });
         }
       } else if (s === 2) {
         /* Fährt hoch: der Auslauf hebt sich, die Ergebnisse treten in
-           Fenstermitte aus — vorwärts 1.4s Gleiten, rückwärts aus dem Parken */
+           Fenstermitte aus — vorwärts 2 Takte Gleiten, rückwärts aus dem Parken */
         funnel.classList.remove('recede');
         tx(funnel, { y: FUNNEL_UP, scale: 1, opacity: 1 },
-          { duration: inst ? 0 : (dir >= 0 ? 1.4 : 1.6) });
+          { duration: inst ? 0 : (dir >= 0 ? 1.264 : 1.896) });
       } else if (s === 6) {
-        /* Finale: Trichter sinkt zur Tischkante zurück und wird Kulisse */
+        /* Finale: die Maschine blendet sich SOFORT aus (3 Takte) — die
+           Siegerkarte wird hinter dem sich auflösenden Glas sichtbar,
+           fällt, und steigt dann allein auf der abgedunkelten Karte auf. */
         if (inst) {
-          tx(funnel, { y: FUNNEL_REST + 60, scale: 0.97, opacity: 0.12 }, { duration: 0 });
+          tx(funnel, { y: FUNNEL_REST, scale: 1, opacity: 0 }, { duration: 0 });
           funnel.classList.add('recede');
-        } else later(() => {
-          tx(funnel, { y: FUNNEL_REST + 60, scale: 0.97, opacity: 0.12 }, { duration: 1.6 });
+        } else {
+          tx(funnel, { y: FUNNEL_REST, scale: 1, opacity: 1 }, { duration: 0 });
           funnel.classList.add('recede');
-        }, 2600);
-      } else {
-        /* Kartenphase · Portfolio · Tarife: unterhalb des Bildes geparkt */
-        funnel.classList.remove('recede');
-        if (inst) tx(funnel, { y: FUNNEL_OFF, scale: 1, opacity: 1 }, { duration: 0 });
-        else if (dir < 0) tx(funnel, { y: FUNNEL_OFF, opacity: 1 }, { duration: 1.8 });
-        else {
-          tx(funnel, { opacity: 0 }, { duration: 0.7 });
-          later(() => { tx(funnel, { y: FUNNEL_OFF, opacity: 1 }, { duration: 0 }); }, 800);
+          tx(funnel, { opacity: 0 }, { duration: 1.896 });
         }
+      } else if (s === 3 || s === 4) {
+        /* Portfolio · Tarife: unsichtbar — vorwärts wie rückwärts blendet
+           die Maschine an Ort und Stelle aus und parkt dann verdeckt;
+           kein sichtbares Hinabgleiten durch das Bild */
+        funnel.classList.remove('recede');
+        if (inst) tx(funnel, { y: FUNNEL_OFF, scale: 1, opacity: 0 }, { duration: 0 });
+        else {
+          tx(funnel, { opacity: 0 }, { duration: 0.632 });
+          later(() => { tx(funnel, { y: FUNNEL_OFF, opacity: 0 }, { duration: 0 }); }, 790);
+        }
+      } else if (step === STEP_FINAL) {
+        /* Schritt 10: die Maschine lädt einen Schritt vor ihrem Einsatz —
+           geparkt und bereit, ohne Übergang; der Aufstieg in Schritt 11
+           startet dann ohne Einblendung. Nur rückwärts aus der Prüfung
+           gleitet sie sichtbar hinab. (s ist auf 0 geklemmt — die Karten-
+           Schritte davor unterscheidet nur der step-Vergleich.) */
+        funnel.classList.remove('recede');
+        if (!inst && dir < 0) tx(funnel, { y: FUNNEL_OFF, scale: 1, opacity: 1 }, { duration: 1.896 });
+        else tx(funnel, { y: FUNNEL_OFF, scale: 1, opacity: 1 }, { duration: 0 });
+      } else {
+        /* Vor Schritt 10 (Karten-Akt): unsichtbar und stumm — kein
+           Umpositionieren, keine Übergänge bei Schrittwechseln */
+        funnel.classList.remove('recede');
+        tx(funnel, { y: FUNNEL_OFF, scale: 1, opacity: 0 }, { duration: 0 });
       }
       if (lit && dir >= 0 && !inst) {
         funnel.classList.remove('active');
-        /* Prüfung (s=1): Leiter startet, sobald die Reihe steht, und läuft im
-           fast-Takt; der Trichter blitzt, solange die Gewinner fallen
-           (WinnersLineup: Fälle 1.9–4.58s).
-           Tarif-Einsaugen (s=5): Ladebalken erst nach der letzten Karte. */
-        later(() => { funnel.classList.add('active'); }, s === 1 ? 1300 : 5000);
+        /* Beide Prüfungen: Leiter ab Takt 4 (2528 ms) im Prüfstrom-Takt —
+           bei s=1 steht die Reihe dann gerade (~2.7s), bei s=5 sinken die
+           Tarife noch (Einsaugen 2.21–4.75s): „Derselbe Maßstab" leuchtet,
+           WÄHREND der Strom läuft, und endet exakt mit der Sperre. Der
+           Trichter blitzt in Prüfung 1, solange die Gewinner fallen
+           (WinnersLineup: Fälle 2.84–5.17s bei acht Gewinnern). */
+        later(() => { funnel.classList.add('active'); }, 2528);
         if (s === 1) {
-          later(() => { funnel.classList.add('flash'); }, 1900);
-          later(() => { funnel.classList.remove('flash'); }, 4700);
+          later(() => { funnel.classList.add('flash'); }, 2844);
+          later(() => { funnel.classList.remove('flash'); }, 5372);
         }
       } else funnel.classList.toggle('active', lit);
     }
@@ -172,16 +219,18 @@ export default function FunnelStage({ view }: { view: View }) {
         tx(el, { y: showFinale ? 0 : 8, opacity: showFinale ? 1 : 0 }, { duration: 0 });
       });
     } else if (showFinale) {
+      /* Ab Takt 5: Titel 2 Takte, Häkchen je 2 Takte im Takt-Stagger —
+         das letzte endet bei ~7.9s, die Sperre (13 Takte) danach */
       later(() => {
-        tx(finaleRef.current, { opacity: 1 }, { duration: 1.4 });
+        tx(finaleRef.current, { opacity: 1 }, { duration: 1.264 });
         fcritRefs.current.forEach((el, i) => {
           tx(el, { y: 8, opacity: 0 }, { duration: 0 });
-          tx(el, { y: 0, opacity: 1 }, { duration: 1.0, delay: 1.0 + i * 0.6 });
+          tx(el, { y: 0, opacity: 1 }, { duration: 1.264, delay: 0.948 + i * 0.632 });
         });
-      }, 3300);
+      }, 3160);
     } else {
-      tx(finaleRef.current, { opacity: 0 }, { duration: 0.4 });
-      fcritRefs.current.forEach(el => { tx(el, { y: 8, opacity: 0 }, { duration: 0.3 }); });
+      tx(finaleRef.current, { opacity: 0 }, { duration: 0.316 });
+      fcritRefs.current.forEach(el => { tx(el, { y: 8, opacity: 0 }, { duration: 0.316 }); });
     }
   }, [view]);
 
@@ -192,10 +241,12 @@ export default function FunnelStage({ view }: { view: View }) {
           ref={el => { spineRefs.current[i] = el; }} />
       ))}
 
+      {/* Typ-Glyphen statt Buchstaben-Kacheln: das Org-Zeichen sagt
+          „Unternehmen", das Dokument sagt „Tarif" — A/B/C trägt der Name */}
       <div id="winners" aria-hidden="true">
         {WINNERS.map((w, i) => (
           <div key={w.n} className="card wn" ref={el => { wnRefs.current[i] = el; }}>
-            <span className="logo"><span className="mono">{w.mono}</span></span>
+            <span className="logo"><svg viewBox="0 0 16 16"><use href="#g-org" /></svg></span>
             <span className="wname">{w.n}</span>
           </div>
         ))}
@@ -204,7 +255,10 @@ export default function FunnelStage({ view }: { view: View }) {
       <div id="products" aria-hidden="true">
         {PRODUCTS.map((p, i) => (
           <div key={p.n} className="card pr" ref={el => { prRefs.current[i] = el; }}>
-            <span className="pname">{p.n}</span>
+            <span className="plabel">
+              <span className="pico"><svg viewBox="0 0 16 16"><use href="#g-doc" /></svg></span>
+              <span className="pname">{p.n}</span>
+            </span>
             <span className="tier">
               {[0, 1, 2].map(j => (
                 <i key={j} className={j < p.v ? 'on' : undefined}
@@ -233,6 +287,17 @@ export default function FunnelStage({ view }: { view: View }) {
             <stop offset="0" stopColor="rgba(95,163,245,.3)" />
             <stop offset="1" stopColor="rgba(95,163,245,0)" />
           </linearGradient>
+          {/* Horizontale Maske: der Lichtkegel löst sich an den Flanken auf,
+             statt als Rechteckkante auf der Karte zu stehen */}
+          <linearGradient id="fBeamX" x1="768" y1="0" x2="832" y2="0" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stopColor="#fff" stopOpacity="0" />
+            <stop offset="0.22" stopColor="#fff" stopOpacity="1" />
+            <stop offset="0.78" stopColor="#fff" stopOpacity="1" />
+            <stop offset="1" stopColor="#fff" stopOpacity="0" />
+          </linearGradient>
+          <mask id="fBeamMask">
+            <rect x="768" y="758" width="64" height="104" fill="url(#fBeamX)" />
+          </mask>
           <filter id="fGlow" x="-60%" y="-600%" width="220%" height="1300%">
             <feGaussianBlur stdDeviation="4" result="b" />
             <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
@@ -240,8 +305,8 @@ export default function FunnelStage({ view }: { view: View }) {
         </defs>
 
         <g transform="translate(0,-64)">
-          {/* Lichtkegel unter dem Auslauf */}
-          <rect x="768" y="758" width="64" height="104" fill="url(#fBeam)" />
+          {/* Lichtkegel unter dem Auslauf — beidseitig weich auslaufend */}
+          <rect x="768" y="758" width="64" height="104" fill="url(#fBeam)" mask="url(#fBeamMask)" />
 
           {/* Korpus + Innenlicht */}
           <path d="M460 560 H1140 L830 720 V758 H770 V720 Z" fill="url(#fg)" />

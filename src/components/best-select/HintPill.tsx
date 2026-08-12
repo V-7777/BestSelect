@@ -16,8 +16,11 @@ export default function HintPill({ restart, onAdvance }: {
         id="hint-pill"
         onClick={onAdvance}
       >
+        {/* Substantivische Labels: „Nächster Schritt" benennt, was der Knopf
+            tut — „Klicken für …" liest sich auf dem geteilten Bildschirm als
+            Aufforderung an den Kunden, der gar nicht bedienen soll. */}
         <span id="hint-label">
-          {restart ? 'Klicken für Neustart' : 'Klicken für den nächsten Schritt'}
+          {restart ? 'Neustart' : 'Nächster Schritt'}
         </span>
         <span className="hint-ico" aria-hidden="true">
           <svg viewBox="0 0 16 16" className="g-next" fill="none" stroke="currentColor"

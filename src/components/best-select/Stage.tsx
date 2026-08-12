@@ -8,6 +8,9 @@ export default function Stage({ ref, children }: { ref: Ref<HTMLDivElement>; chi
   return (
     <div id="stage" ref={ref}>
       <div id="scrim-low" aria-hidden="true" />
+      {/* Finale-Scrim: dunkelt die Karte unter dem Schlussbild deutlich
+          stärker ab — nur bei .final sichtbar */}
+      <div id="scrim-final" aria-hidden="true" />
       {children}
     </div>
   );

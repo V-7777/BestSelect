@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, type CSSProperties } from 'react';
-import { STEP_CATS, STEP_FINAL, STEP_RADAR } from '@/lib/best-select/constants';
+import { CATS, STEP_FINAL, STEP_RADAR } from '@/lib/best-select/constants';
 import { countUp, fmt, tx } from '@/lib/best-select/animate';
 import type { View } from './BestSelect';
 
@@ -22,34 +22,34 @@ export default function CounterCard({ view }: { view: View }) {
     const on = step >= 1 && step <= STEP_FINAL;
     /* Radar-Phase: zurücknehmen, aber lesbar bleiben — 0.78 hält die
        Zeilenbeschriftungen mit Reserve über dem AA-Kontrast */
-    tx(cardRef.current, { opacity: on ? (step >= STEP_RADAR ? 0.78 : 1) : 0 }, { duration: inst ? 0 : 0.9 });
-    STEP_CATS.forEach((cat, i) => {
+    tx(cardRef.current, { opacity: on ? (step >= STEP_RADAR ? 0.78 : 1) : 0 }, { duration: inst ? 0 : 0.632 });
+    CATS.forEach((cat, i) => {
       const row = rowRefs.current[i], num = numRefs.current[i];
       if (!row || !num) return;
       const vis = step >= i + 1;
       if (!vis) {
-        tx(row, { y: -14, opacity: 0 }, { duration: inst ? 0 : 0.5 });
+        tx(row, { y: -14, opacity: 0 }, { duration: inst ? 0 : 0.474 });
         return;
       }
       const fresh = !inst && dir >= 0 && step === i + 1;
       /* Landung von oben: fallen und aufsetzen (ease-out-quint, kein Wippen) */
       tx(row, { y: 0, opacity: 1 },
-        { duration: inst ? 0 : 0.8, delay: inst ? 0 : 0.15, ease: [0.22, 1, 0.36, 1] });
+        { duration: inst ? 0 : 0.632, delay: inst ? 0 : 0.158, ease: [0.22, 1, 0.36, 1] });
       if (fresh) {
         num.textContent = '0';
-        countUp(num, cat.total, cat.key === 'fonds' ? 2200 : 1400);
+        countUp(num, cat.total, cat.key === 'fonds' ? 1896 : 1264);
       } else {
         num.textContent = fmt(cat.total);
       }
     });
   }, [view]);
 
-  const rows = Math.max(1, Math.min(view.step, STEP_CATS.length));
+  const rows = Math.max(1, Math.min(view.step, CATS.length));
   return (
     <div id="counter" ref={cardRef} aria-hidden="true"
       style={{ '--rows': rows } as CSSProperties}>
       <div className="core">
-        {STEP_CATS.map((cat, i) => (
+        {CATS.map((cat, i) => (
           <div className="crow" key={cat.key} ref={el => { rowRefs.current[i] = el; }}>
             <span className="clabel">
               <span className={'cico ci-' + cat.key}>
