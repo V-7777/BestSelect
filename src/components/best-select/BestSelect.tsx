@@ -52,9 +52,11 @@ function lockFor(n: number, dir: number): number {
   if (f === 3) return BEAT * 5;    /* 3160: Kopfzeile gleitet bis ~2.69s */
   if (f === 4) return BEAT * 6;    /* 3792: Karten bis ~3.17s, Batterien laden bis ~3.33s */
   if (f === 5) return BEAT * 8;    /* 5056: Einsaugen bis ~4.75s, Leiter endet exakt auf Takt 8 */
-  return BEAT * 15;                /* 9480: Finale-Crescendo — Häkchen bis ~7.9s, Lichtlauf
-                                      über die Siegerkarte Takt 13–15; erst danach wird
-                                      Weiter (= Neustart) wieder angenommen */
+  return BEAT * 17;                /* 10744: Finale-Crescendo — Auswurf Takt 1–3, Glas löst
+                                      sich 3–6, Aufstieg 6–9, Häkchen bis ~9.16s, Lichtlauf
+                                      über die Siegerkarte Takt 15–17 endet exakt mit der
+                                      Sperre; erst danach wird Weiter (= Neustart) wieder
+                                      angenommen */
 }
 
 export default function BestSelect() {

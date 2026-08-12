@@ -4,7 +4,7 @@ import { useEffect, useRef, type CSSProperties } from 'react';
 import { STEP_FINAL } from '@/lib/best-select/constants';
 import {
   CANVAS_X, COLS3, CRIT_C, CRIT_P, FUNNEL_OFF,
-  FUNNEL_REST, FUNNEL_UP, HEAD_Y, OUT2_Y, OUT_Y, PRODUCTS, PR_ROWS, SINK_Y, WINNERS, WIN_COL, WIN_P,
+  FUNNEL_REST, FUNNEL_UP, HEAD_Y, OUT2_Y, OUT_Y, PRODUCTS, PR_ROWS, SINK_Y, SPOUT_Y, WINNERS, WIN_COL, WIN_P,
 } from '@/lib/best-select/funnel';
 import { later, tx } from '@/lib/best-select/animate';
 import type { View } from './BestSelect';
@@ -14,7 +14,7 @@ import type { View } from './BestSelect';
      1 Prüfung der acht Gewinner (Trichter + fünf Kriterien; die Aufstellung
        und die Fälle choreografiert WinnersLineup) ·
      2 Drei bleiben übrig (Trichter fährt hoch, Ergebnisse in Fenstermitte) ·
-     3 Blick in die Unternehmen · 4 Neun Tarife ·
+     3 Blick in die Unternehmen · 4 Produktvergleich ·
      5 Derselbe Maßstab · 6 Ein Tarif bleibt.
    Alle Ebenen sind reine Funktionen des View-Zustands; vor der Phase (s ≤ 0)
    rendert jede in ihren verborgenen Grundzustand — Neustart inklusive. */
@@ -57,7 +57,7 @@ export default function FunnelStage({ view }: { view: View }) {
            sichtbar geschaltet, wenn der Korpus sie überdeckt, und treten
            dann wachsend unter dem Auslauf aus — physisch ausgespuckt statt
            eingeblendet. Seed → later(50): Motion-Store-Muster, s. Lineup. */
-        tx(el, { x: CANVAS_X, y: FUNNEL_UP + 225, scale: 0.22, opacity: 0 }, { duration: 0 });
+        tx(el, { x: CANVAS_X, y: FUNNEL_UP + SPOUT_Y, scale: 0.22, opacity: 0 }, { duration: 0 });
         later(() => {
           tx(el, { opacity: 1 }, { duration: 0, delay: 1.264 });
           tx(el, { x: COLS3[i], y: OUT2_Y, scale: 1 }, { duration: 1.264, delay: 1.264 + i * 0.35 });
@@ -80,13 +80,23 @@ export default function FunnelStage({ view }: { view: View }) {
         tx(el, prState(4, i), { duration: 0 });
         later(() => { tx(el, prState(5, i), { duration: 1.896, delay: i * 0.08 }); }, 2212);
       } else if (s === 6 && i === WIN_P && !inst) {
-        /* Reine Bewegung: Endgröße steht fest, BEVOR das Glas sich lichtet
-           (t=0, Korpus noch deckend) — danach nur noch Translation: Fall
-           aus dem Auslauf (Takt 1–4), Aufstieg ins Zentrum (Takt 4–7).
-           Kein Größen-, kein Farbwechsel im Flug. */
-        tx(el, { x: CANVAS_X, y: SINK_Y, scale: 1.4, opacity: 1 }, { duration: 0 });
-        tx(el, { y: OUT_Y }, { duration: 1.896, delay: 0.632 });
-        later(() => { tx(el, prState(6, i), { duration: 1.896 }); }, 2528);
+        /* Wie Schritt 12, nur solo: klein im Auslauf gesät (Scale .22 ≈ 57px
+           ≤ Spout 60px), hinter dem deckenden Korpus sichtbar geschaltet und
+           physisch ausgespuckt (Takt 1–3) — dabei wächst die Karte auf die
+           Rastergröße (Scale 1), mit der sie in Schritt 15 eingesaugt wurde:
+           so groß raus, wie sie rein ging. Erst wenn das Glas sich danach
+           löst, steigt sie auf und wächst ins Bild (Takt 6–9, auf 1.4). */
+        tx(el, { x: CANVAS_X, y: SPOUT_Y, scale: 0.22, opacity: 0 }, { duration: 0 });
+        later(() => { tx(el, { opacity: 1 }, { duration: 0 }); }, 50);
+        later(() => { tx(el, { y: OUT_Y, scale: 1 }, { duration: 1.264 }); }, 632);
+        later(() => { tx(el, prState(6, i), { duration: 1.896 }); }, 3792);
+      } else if (s === 6 && !inst && dir >= 0) {
+        /* Verlierer: bleiben im Glas gestapelt und lösen sich MIT dem Glas
+           (ab Takt 3) — einen Takt schneller als der Korpus (1.264 vs 1.896),
+           damit das halbtransparente Glas keinen Stapel-Geist durchscheinen
+           lässt. */
+        tx(el, prState(5, i), { duration: 0 });
+        later(() => { tx(el, { opacity: 0 }, { duration: 1.264 }); }, 1896);
       } else {
         tx(el, prState(s, i), {
           duration: inst ? 0 : 1.896,
@@ -94,21 +104,21 @@ export default function FunnelStage({ view }: { view: View }) {
         });
       }
       if (s === 6 && i === WIN_P) {
-        /* front: beim Aufstieg vor das stehende Trichterglas (z2) heben —
-           während des Falls bleibt die Karte dahinter verschluckt.
-           shine (Takt 13): einmaliger Lichtlauf über die Karte, NACHDEM
-           das letzte Häkchen (Rating, ~7.9s) gelandet ist — kein
+        /* front: erst beim Aufstieg vor den (aufgelösten, aber z2) Trichter
+           heben — Auswurf und Wartezeit bleiben hinter Korpus und Lichtkegel.
+           shine (Takt 15): einmaliger Lichtlauf über die Karte, NACHDEM
+           das letzte Häkchen (Rating, ~9.16s) gelandet ist — kein
            Endzustand, darum nicht im inst-Pfad. */
         if (inst) {
           el.classList.add('glow'); el.classList.add('front'); el.classList.remove('shine');
         } else {
-          /* glow erst bei ANKUNFT (Takt 7): zündet der Bloom schon beim
+          /* glow erst bei ANKUNFT (Takt 9): zündet der Bloom schon beim
              Aufstieg, blitzt die Karte im Flug weiß auf der dunklen
              Bühne — der Flug bleibt nüchternes Glas, das Licht gehört
              dem Ankommen. */
-          later(() => { el.classList.add('front'); }, 2528);
-          later(() => { el.classList.add('glow'); }, 4424);
-          later(() => { el.classList.add('shine'); }, 8216);
+          later(() => { el.classList.add('front'); }, 3792);
+          later(() => { el.classList.add('glow'); }, 5688);
+          later(() => { el.classList.add('shine'); }, 9480);
         }
       } else { el.classList.remove('glow'); el.classList.remove('front'); el.classList.remove('shine'); }
       if (s >= 4) {
@@ -159,16 +169,19 @@ export default function FunnelStage({ view }: { view: View }) {
         tx(funnel, { y: FUNNEL_UP, scale: 1, opacity: 1 },
           { duration: inst ? 0 : (dir >= 0 ? 1.264 : 1.896) });
       } else if (s === 6) {
-        /* Finale: die Maschine blendet sich SOFORT aus (3 Takte) — die
-           Siegerkarte wird hinter dem sich auflösenden Glas sichtbar,
-           fällt, und steigt dann allein auf der abgedunkelten Karte auf. */
+        /* Finale: die Maschine bleibt stehen und spuckt die Siegerkarte
+           physisch aus (Takt 1–3) — erst DANACH löst sich das Glas (Takt
+           3–6), mitsamt allem, was es noch verdeckt, und die Karte steigt
+           allein auf der abgedunkelten Karte auf. */
         if (inst) {
           tx(funnel, { y: FUNNEL_REST, scale: 1, opacity: 0 }, { duration: 0 });
           funnel.classList.add('recede');
         } else {
           tx(funnel, { y: FUNNEL_REST, scale: 1, opacity: 1 }, { duration: 0 });
-          funnel.classList.add('recede');
-          tx(funnel, { opacity: 0 }, { duration: 1.896 });
+          later(() => {
+            funnel.classList.add('recede');
+            tx(funnel, { opacity: 0 }, { duration: 1.896 });
+          }, 1896);
         }
       } else if (s === 3 || s === 4) {
         /* Portfolio · Tarife: unsichtbar — vorwärts wie rückwärts blendet
@@ -219,15 +232,16 @@ export default function FunnelStage({ view }: { view: View }) {
         tx(el, { y: showFinale ? 0 : 8, opacity: showFinale ? 1 : 0 }, { duration: 0 });
       });
     } else if (showFinale) {
-      /* Ab Takt 5: Titel 2 Takte, Häkchen je 2 Takte im Takt-Stagger —
-         das letzte endet bei ~7.9s, die Sperre (13 Takte) danach */
+      /* Ab Takt 7 (die Karte steigt schon): Titel 2 Takte, Häkchen je
+         2 Takte im Takt-Stagger — das letzte endet bei ~9.16s, danach
+         der Lichtlauf (Takt 15–17) bis zur Sperre */
       later(() => {
         tx(finaleRef.current, { opacity: 1 }, { duration: 1.264 });
         fcritRefs.current.forEach((el, i) => {
           tx(el, { y: 8, opacity: 0 }, { duration: 0 });
           tx(el, { y: 0, opacity: 1 }, { duration: 1.264, delay: 0.948 + i * 0.632 });
         });
-      }, 3160);
+      }, 4424);
     } else {
       tx(finaleRef.current, { opacity: 0 }, { duration: 0.316 });
       fcritRefs.current.forEach(el => { tx(el, { y: 8, opacity: 0 }, { duration: 0.316 }); });
@@ -350,7 +364,6 @@ export default function FunnelStage({ view }: { view: View }) {
 
       <div id="finale" aria-hidden="true" ref={finaleRef}>
         <div className="tag">Best Select</div>
-        <div className="fname">{WINNERS[WIN_COL].n} · {PRODUCTS[WIN_P].n}</div>
         <div id="fcrits">
           {CRIT_P.map((c, i) => (
             <span key={c} className="fcrit" ref={el => { fcritRefs.current[i] = el; }}>

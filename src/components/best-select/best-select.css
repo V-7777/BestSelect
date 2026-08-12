@@ -26,8 +26,11 @@ body{background:var(--ink-deep);color:var(--cream);cursor:pointer;
   -webkit-font-smoothing:antialiased}
 #viewport{position:fixed;inset:0;
   background:radial-gradient(115% 95% at 50% 40%, #0D2239 0%, var(--ink) 48%, var(--ink-deep) 100%)}
+/* overflow:hidden — die Bühne ist der Bildausschnitt: geparkte Ebenen
+   (Trichter unter dem Bild, Symbolregen über dem Bild) bleiben auch auf
+   Letterbox-Viewports unsichtbar, bis ihre Choreografie sie hereinholt */
 #stage{position:absolute;left:50%;top:50%;width:1600px;height:900px;transform-origin:50% 50%;
-  background:url('/germany-night.png') center/cover no-repeat}
+  overflow:hidden;background:url('/germany-night.png') center/cover no-repeat}
 /* Scrims: die Karte ist selbst dunkel — nur oben Lesbarkeit für die Schiene + leichte Vignette */
 #stage::before{content:'';position:absolute;inset:0;z-index:0;pointer-events:none;
   background:linear-gradient(180deg,rgba(5,14,25,.66) 0%,rgba(5,14,25,.3) 15%,rgba(5,14,25,0) 30%)}
@@ -421,10 +424,11 @@ body:active #stage:not(.busy):not(.final) .hint-ico,
 .card.glow{background:linear-gradient(180deg,rgba(35,120,231,.38),rgba(35,120,231,.14));
   box-shadow:0 0 0 2px var(--halo),0 0 70px -12px rgba(35,120,231,.85),
              0 24px 48px -28px rgba(3,9,17,.8)}
-/* Finale: die Siegerkarte steigt VOR dem stehenden Trichterglas (z2) auf —
-   Anhebung erst beim Aufstieg, der Fall bleibt hinter dem Korpus verdeckt */
+/* Finale: die Siegerkarte steigt auf, NACHDEM das Glas sich gelöst hat —
+   front hebt sie über den (unsichtbaren, aber z2) Trichter; Auswurf und
+   Wartezeit bleiben hinter dem Korpus verdeckt */
 .card.front{z-index:3}
-/* Lichtlauf (Takt 13, nach dem letzten Häkchen): eine schmale, schräge
+/* Lichtlauf (Takt 15, nach dem letzten Häkchen ~9.16s): eine schmale, schräge
    Spiegelung zieht einmal über die Siegerkarte — wie Licht über eine
    Klinge: langsam angesetzt, am Ende beschleunigend (ease-in-quint).
    Nur transform bewegt sich (Compositor); both hält den Endzustand
@@ -494,10 +498,7 @@ body:active #stage:not(.busy):not(.final) .hint-ico,
 /* Lesbarkeit auf dem Lichternetz: #scrim-low (.lowlit) dunkelt den Grund,
    die Texte tragen zusätzlich einen weichen Schein — zusammen ≥ AA */
 #finale .tag{font-size:12.5px;font-weight:500;letter-spacing:.2em;text-transform:uppercase;
-  color:#9CC6FA;text-shadow:0 1px 10px rgba(3,9,17,.5)}
-#finale .fname{font-family:'Selecta',var(--font-display),'Schibsted Grotesk',Inter,system-ui,sans-serif;
-  font-weight:600;font-size:40px;line-height:1.1;letter-spacing:-.01em;color:#fff;
-  margin:12px 0 30px;text-shadow:0 2px 18px rgba(3,9,17,.55)}
+  color:#9CC6FA;text-shadow:0 1px 10px rgba(3,9,17,.5);margin-bottom:26px}
 .fcrit{display:inline-flex;align-items:center;gap:9px;margin:0 14px;opacity:0;
   font-size:13.5px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;
   color:rgba(236,243,255,.96);text-shadow:0 1px 8px rgba(3,9,17,.5)}

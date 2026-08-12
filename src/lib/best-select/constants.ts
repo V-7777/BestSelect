@@ -83,7 +83,7 @@ export const T: StepText[] = [
      enden */
   { k: 'Prüfung 2 von 2 · Tarife',         h: 'Blick in die Unternehmen',
     s: 'Die besten Unternehmen stehen\nfest — jetzt prüfen wir ihre\nTarife nach demselben Maßstab.' },
-  { k: 'Prüfung 2 von 2 · Tarife',         h: 'Neun Tarife' },
+  { k: 'Prüfung 2 von 2 · Tarife',         h: 'Produktvergleich' },
   { k: 'Prüfung 2 von 2 · Tarife',         h: 'Derselbe Maßstab' },
   { k: 'Prüfung 2 von 2 · Tarife',         h: 'Ein Tarif bleibt' },
 ];

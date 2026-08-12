@@ -40,6 +40,8 @@ export const OUT_Y = 320;                        /* abs 770 — Ergebnisse unter
 export const FUNNEL_REST = 0;                    /* Auslauf endet an der Tischkante (Schritte 11 / 15 / 16) */
 export const FUNNEL_OFF = 420;                   /* Trichter unterhalb des Bildes geparkt */
 export const FUNNEL_UP = -320;                   /* Schritt 12: Trichter fährt hoch — Auslauf-Unterkante abs ≈ 374 */
+export const SPOUT_Y = 225;                      /* Auslauf-Mitte relativ zur Trichter-Lage (abs 675 bei FUNNEL_REST) —
+                                                    Saatpunkt der Ausspuck-Muster (Schritte 12 und 16) */
 export const OUT2_Y = 0;                         /* abs 450 — Gewinner treten in Fenstermitte aus (Schritt 12) */
 export const LINE_Y = 176;                       /* Aufstellungs-Reihe der acht Gewinner (Schritt 11) */
 export const LINE_DX = 60;                       /* Reihenabstand: x = 800 + (i−3,5)·60 → 590…1010, alle im Trichtermund */
