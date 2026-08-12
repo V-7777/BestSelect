@@ -8,16 +8,12 @@ import type { View } from './BestSelect';
 /* Textschiene: Kicker-Pille, Headline, Unterzeile, Fußnote — plus unsichtbare
    Evidenz je Schritt für Screenreader (die visuellen Ebenen sind aria-hidden).
    Schwerer Auftritt: aus der Unschärfe nach oben in die Schärfe.
-   Innerhalb der „… im Blick"-Familie (Schritte 1–7) tauscht nur das
-   wechselnde Wort: die Headline ist ein zweizeiliges Lockup (.h-lead /
-   .h-tail), „im Blick" und die identische Fußnote stehen still. */
+   Während der Kategorie-Schritte (1–8) teilen sich alle Schritte EIN
+   Textobjekt — bei Referenzgleichheit steht die Schiene buchstäblich still,
+   nur die Screenreader-Evidenz wandert mit. */
 
-const TAIL = ' im Blick';
-
-export default function TextRail({ view }: { view: View }) {
+export default function TextRail({ view, order }: { view: View; order: number[] }) {
   const railRef = useRef<HTMLDivElement>(null);
-  const leadRef = useRef<HTMLSpanElement>(null);
-  const kickerRef = useRef<HTMLDivElement>(null);
   const lastRef = useRef(0);
   const [step, setStep] = useState(0);
 
@@ -34,23 +30,10 @@ export default function TextRail({ view }: { view: View }) {
     };
     if (view.inst) {
       tx(rail, { y: 0, opacity: 1, blur: 0 }, { duration: 0 });
-      tx(leadRef.current, { y: 0, opacity: 1, blur: 0 }, { duration: 0 });
-      tx(kickerRef.current, { opacity: 1 }, { duration: 0 });
       apply();
-    } else if (prev.h.endsWith(TAIL) && nx.h.endsWith(TAIL)
-        && prev.n === nx.n && !prev.s && !nx.s) {
-      /* Teiltausch: nur das wechselnde Wort + Kicker — der Rest steht.
-         Abgang halber Takt, Übergabe auf dem halben Takt, Auftritt 1 Takt */
-      tx(leadRef.current, { y: -10, opacity: 0, blur: 4 }, { duration: 0.316, ease: [0.4, 0, 1, 1] });
-      tx(kickerRef.current, { opacity: 0 }, { duration: 0.316 });
-      later(() => {
-        setStep(next);
-        tx(leadRef.current, { y: 12, opacity: 0, blur: 6 }, { duration: 0 });
-        requestAnimationFrame(() => {
-          tx(leadRef.current, { y: 0, opacity: 1, blur: 0 }, { duration: 0.632 });
-          tx(kickerRef.current, { opacity: 1 }, { duration: 0.632 });
-        });
-      }, 330);
+    } else if (prev === nx) {
+      /* Derselbe Text: kein Tausch, keine Bewegung — nur die Evidenz zieht um */
+      setStep(next);
     } else {
       tx(rail, { y: -12, opacity: 0, blur: 4 }, { duration: 0.316, ease: [0.4, 0, 1, 1] });
       later(() => {
@@ -64,18 +47,11 @@ export default function TextRail({ view }: { view: View }) {
   const t = T[step];
   return (
     <div className="rail" id="rail" ref={railRef} aria-live="polite">
-      <div className="kicker" id="kicker" ref={kickerRef}>{t.k}</div>
-      <h1 id="head">
-        {t.h.endsWith(TAIL)
-          ? <>
-              <span className="h-lead" ref={leadRef}>{t.h.slice(0, -TAIL.length)}</span>
-              <span className="h-tail">im Blick</span>
-            </>
-          : t.h}
-      </h1>
+      <div className="kicker" id="kicker">{t.k}</div>
+      <h1 id="head">{t.h}</h1>
       <div className="sub" id="sub" style={t.s ? undefined : { display: 'none' }}>{t.s || ''}</div>
       <div className="note" id="note" style={t.n ? undefined : { display: 'none' }}>{t.n || ''}</div>
-      <div className="sr-only" id="sr-evidence">{evidenceFor(step)}</div>
+      <div className="sr-only" id="sr-evidence">{evidenceFor(step, order)}</div>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 /* Daten & Choreografie-Konstanten — 1:1 aus best-select-v3.html portiert;
-   Trichterphase (Schritte 11–16) aus Assets.html weiterentwickelt. */
+   Trichterphase (Schritte 11–13) radikal vereinfacht: Kreise statt Karten. */
 
-import { CRIT_C, CRIT_P, PRODUCTS, WINNERS, WIN_COL } from './funnel';
+import { CRIT_C, CRIT_P } from './funnel';
 
 export type CatKey = 'bsp' | 'vv' | 'spk' | 'vers' | 'ibt' | 'stb' | 'bank' | 'fonds';
 
@@ -33,7 +33,10 @@ export const CATS: Cat[] = [
 ];
 
 export const N_CATS = CATS.length;
-export const STEP_FONDS = CATS.findIndex(c => c.key === 'fonds') + 1;
+/* Die Auftrittsreihenfolge der Kategorien wird je Durchlauf gemischt
+   (BestSelect hält sie als Zustand) — fest bleibt nur der Index des
+   Fonds-Regens, dessen Schritt eine längere Sperre braucht. */
+export const FONDS_IDX = CATS.findIndex(c => c.key === 'fonds');
 export const STEP_RADAR = N_CATS + 1;   /* Schritt 9: der Radar entscheidet */
 export const STEP_FINAL = N_CATS + 2;   /* Schritt 10: Best Select auf der Karte */
 
@@ -59,64 +62,51 @@ export interface StepText {
 }
 
 /* Nur der Titel trägt eine Unterzeile — der Berater spricht, die Bühne zeigt.
-   Die Verdichtungs-Fußnote steht ab dem ersten Evidenzmoment: die Zahl 38
-   neben vier Symbolen darf keine offene Frage lassen. */
-const SYM = 'Darstellung symbolisch verdichtet — jedes Symbol steht für viele Anbieter.';
+   Während die Kategorien auftreten (Schritte 1–8), steht die Schiene STILL:
+   ein Text für den ganzen Aufmarsch, die Bühne trägt den Wechsel allein.
+   Ein einziges Objekt für alle acht Schritte — die Referenzgleichheit ist
+   das Signal an TextRail, keinen Tausch zu choreografieren. */
 const ANON = 'Darstellung anonymisiert — die Namen nennen wir im persönlichen Gespräch.';
+const MARKET: StepText = {
+  k: 'Der deutsche Markt',
+  h: 'Der ganze Markt im Blick',
+  n: 'Darstellung symbolisch verdichtet — jedes Symbol steht für viele Anbieter bzw. Produkte.',
+};
 export const T: StepText[] = [
   { k: 'Auswahlprozess',                   h: 'Weitblick Best Select', s: 'Der ganze Markt. Eine Empfehlung.' },
-  { k: 'Schritt 01 · Bausparkassen',       h: 'Bausparkassen im Blick', n: SYM },
-  { k: 'Schritt 02 · Vermögensverwalter',  h: 'Vermögensverwalter im Blick', n: SYM },
-  { k: 'Schritt 03 · Sparkassen',          h: 'Sparkassen im Blick', n: SYM },
-  { k: 'Schritt 04 · Versicherer',         h: 'Versicherer im Blick', n: SYM },
-  { k: 'Schritt 05 · Bauträger',           h: 'Immobilien-Bauträger im Blick', n: SYM },
-  { k: 'Schritt 06 · Steuerberater',       h: 'Steuerberater im Blick', n: SYM },
-  { k: 'Schritt 07 · Banken',              h: 'Kreditinstitute im Blick', n: SYM },
-  { k: 'Schritt 08 · Fonds & ETFs',        h: 'Der ganze Fondsmarkt',
-    n: 'Darstellung symbolisch verdichtet — jedes Symbol steht für viele Anbieter bzw. Produkte.' },
+  MARKET, MARKET, MARKET, MARKET, MARKET, MARKET, MARKET, MARKET,
   { k: 'Schritt 09 · Filter',              h: 'Der Weitblick-Radar' },
-  { k: 'Schritt 10 · Best Select',         h: 'Das Beste bleibt',
-    n: 'Auswahl anonymisiert — die Namen nennen wir im persönlichen Gespräch.' },
-  /* ---- Trichterphase: zwei Prüfungen — erst die Unternehmen, dann ihre Tarife.
-     Die Kicker tragen die Zwei-Phasen-Erzählung (Prüfung 1/2), damit der
-     Wechsel auf die Tarif-Ebene (Schritt 13) unübersehbar ist. ---- */
-  { k: 'Prüfung 1 von 2 · Unternehmen',    h: 'Die besten Unternehmen werden geprüft' },
-  { k: 'Prüfung 1 von 2 · Unternehmen',    h: 'Drei bleiben übrig', n: ANON },
-  /* Unterzeile dreizeilig gebrochen (\n, .sub ist pre-line): auf Kopfzeilen-
-     Höhe steht ab x 370 die Karte „Unternehmen A" — die Zeilen müssen davor
-     enden */
-  { k: 'Prüfung 2 von 2 · Tarife',         h: 'Blick in die Unternehmen',
-    s: 'Die besten Unternehmen stehen\nfest — jetzt prüfen wir ihre\nTarife nach demselben Maßstab.' },
-  { k: 'Prüfung 2 von 2 · Tarife',         h: 'Produktvergleich' },
-  { k: 'Prüfung 2 von 2 · Tarife',         h: 'Derselbe Maßstab' },
-  { k: 'Prüfung 2 von 2 · Tarife',         h: 'Ein Tarif bleibt' },
+  { k: 'Schritt 10 · Best Select',         h: 'Das Beste bleibt', n: ANON },
+  /* ---- Trichterphase: zwei Prüfungen — erst gewinnt das beste Unternehmen,
+     dann gewinnt sein bester Tarif. Die Kicker tragen die Zwei-Phasen-
+     Erzählung (Prüfung 1/2). ---- */
+  { k: 'Prüfung 1 von 2 · Unternehmen',    h: 'Das beste Unternehmen setzt sich durch', n: ANON },
+  { k: 'Prüfung 2 von 2 · Tarife',         h: 'Die Tarife des Besten',
+    s: 'Das beste Unternehmen steht fest —\njetzt entscheidet der Tarif.', n: ANON },
+  { k: 'Best Select',                      h: 'Der beste Tarif bleibt' },
 ];
 
 export const LAST = T.length - 1;
 
-/* Evidenz je Schritt für Screenreader — die visuellen Ebenen sind aria-hidden */
-export function evidenceFor(step: number): string {
-  if (step === 1) return 'Am Markt: 38 Bausparkassen.';
-  if (step === 2) return 'Dazu kommen 46 Vermögensverwalter.';
-  if (step === 3) return 'Dazu kommen 341 Sparkassen.';
-  if (step === 4) return 'Dazu kommen 522 Versicherungsunternehmen.';
-  if (step === 5) return 'Dazu kommen 700 Immobilien-Bauträger.';
-  if (step === 6) return 'Dazu kommen 1.171 Steuerberater.';
-  if (step === 7) return 'Dazu kommen 1.400 Banken und Kreditinstitute.';
-  if (step === 8) return 'Und über 10.000 Investmentfonds und ETFs.';
+/* Evidenz je Schritt für Screenreader — die visuellen Ebenen sind aria-hidden.
+   Die Kategorie-Schritte folgen der gemischten Auftrittsreihenfolge (order);
+   ohne order gilt die CATS-Reihenfolge (Server-Render vor dem Mischen). */
+export function evidenceFor(step: number, order?: number[]): string {
+  if (step >= 1 && step <= N_CATS) {
+    const cat = CATS[order ? order[step - 1] : step - 1];
+    const num = (cat.key === 'fonds' ? 'über ' : '') + cat.total.toLocaleString('de-DE');
+    return step === 1
+      ? 'Am Markt: ' + num + ' ' + cat.label + '.'
+      : 'Dazu kommen ' + num + ' ' + cat.label + '.';
+  }
   if (step === STEP_RADAR) return 'Der Weitblick-Radar prüft den gesamten Markt nach einem Maßstab — nur die Besten bleiben.';
   if (step === STEP_FINAL) return 'Best Select: acht Empfehlungen aus dem ganzen Markt, geprüft nach einem Maßstab.';
   const f = step - STEP_FINAL;
-  if (f === 1) return 'Prüfung 1 von 2: Die acht besten Unternehmen durchlaufen den Trichter — fünf Kriterien: ' + CRIT_C.join(', ') + '.';
-  if (f === 2) return 'Übrig bleiben: ' + WINNERS.map(w => w.n).join(', ') + '.';
-  if (f === 3) return 'Prüfung 2 von 2: Der Blick geht in die Unternehmen — jetzt werden die Tarife der drei Besten geprüft.';
-  if (f === 4) {
-    const tarife = (col: number) => PRODUCTS.filter(p => p.col === col)
-      .map(p => p.n + ' ' + p.v + ' von 3').join(', ');
-    return WINNERS.map((w, i) => w.n + ': ' + tarife(i)).join('. ') + '.';
-  }
-  if (f === 5) return 'Die fünf Tarif-Kriterien: ' + CRIT_P.join(', ') + '.';
-  if (f === 6) return 'Die Empfehlung: ' + WINNERS[WIN_COL].n + ', Tarif Premium — 3 von 3. ' +
-    'Alle fünf Kriterien erfüllt: ' + CRIT_P.join(', ') + '.';
+  if (f === 1) return 'Prüfung 1 von 2: Die acht besten Unternehmen durchlaufen den Trichter — fünf Kriterien: '
+    + CRIT_C.join(', ') + '. Das beste Unternehmen setzt sich durch.';
+  if (f === 2) return 'Prüfung 2 von 2: Die Tarife des besten Unternehmens durchlaufen den Trichter — '
+    + 'fünf Kriterien: ' + CRIT_P.join(', ') + '.';
+  if (f === 3) return 'Die Empfehlung: der beste Tarif des besten Unternehmens — Best Select, geprüft nach '
+    + CRIT_P.join(', ') + '.';
   return '';
 }

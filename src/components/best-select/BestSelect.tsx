@@ -5,13 +5,12 @@
    reine Funktion des View-Zustands {step, inst, dir}. */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { LAST, LEAD, N_CATS, ROT, STEP_FINAL, STEP_FONDS, STEP_RADAR, WIN_ANIM } from '@/lib/best-select/constants';
+import { CATS, FONDS_IDX, LAST, LEAD, N_CATS, ROT, STEP_FINAL, STEP_RADAR, WIN_ANIM } from '@/lib/best-select/constants';
 import { bump, reduced, tx } from '@/lib/best-select/animate';
 import Stage from './Stage';
 import MapFallback from './MapFallback';
 import IconGlyphs from './IconGlyphs';
 import IconsLayer from './IconsLayer';
-import WinnersLineup from './WinnersLineup';
 import Radar from './Radar';
 import FunnelStage from './FunnelStage';
 import CounterCard from './CounterCard';
@@ -34,38 +33,51 @@ export const BEAT = 632;
 
 /* Sperre folgt der laufenden Choreografie — ein zweiter Klick kann keinen
    Erzählmoment amputieren. Jede Sperre deckt die VOLLE Choreografie ihres
-   Schritts inkl. CSS-Nachläufer (Batterie-Balken, Kriterienleiter,
-   Häkchen-Kaskade); Esc bleibt der bewusste Ausstieg für den Berater.
-   Der Radar sperrt bis der letzte Ping verglüht und der letzte Gewinner
-   eingerastet ist: Vorlauf + voller Umlauf + Nachglüh-/Einrast-Schweif. */
-function lockFor(n: number, dir: number): number {
+   Schritts inkl. CSS-Nachläufer (Kriterienleiter, Flash); Esc bleibt der
+   bewusste Ausstieg für den Berater. Der Radar sperrt bis der letzte Ping
+   verglüht und der letzte Gewinner eingerastet ist. Der Fonds-Regen liegt
+   nicht mehr auf einem festen Schritt — seine Position kommt aus der
+   gemischten Reihenfolge (fondsStep). */
+function lockFor(n: number, dir: number, fondsStep: number): number {
   if (dir < 0) return BEAT;        /* rückwärts: Ergebnis-Zustände, kurz sperren */
   if (n === STEP_RADAR) return (LEAD + ROT + WIN_ANIM) * 1000;
                                    /* 4424 ms: letzte Kreuzung 3.16s + 1.264s Schweif
                                       (pingOut wie winLock) — alle übrigen Nachläufer
                                       (Lichtscheibe 3.79s, Welle 1.90s, Strahl 3.48s)
                                       enden früher */
-  if (n === STEP_FONDS) return BEAT * 4;   /* 2528: Regen-Fenster 3 Takte + 632ms Auftritt */
-  if (n >= 1 && n < N_CATS) return BEAT * 3;   /* 1896: längster Stagger (~1.17s) + Auftritt */
+  if (n === fondsStep) return BEAT * 4;        /* 2528: Regen-Fenster 3 Takte + 632ms Auftritt */
+  if (n >= 1 && n <= N_CATS) return BEAT * 3;  /* 1896: längster Stagger (~1.17s) + Auftritt */
   if (n === STEP_FINAL) return BEAT * 3;       /* 1896: Schienen-Tausch + done-Übergänge */
   const f = n - STEP_FINAL;        /* Trichterphase */
-  if (f === 1) return BEAT * 9;    /* 5688: Aufstellung bis ~2.7s, Fälle bis ~5.39s, Flash bis ~5.37s */
-  if (f === 2) return BEAT * 6;    /* 3792: Trichter hoch (1.264s), drei treten bis ~3.28s aus */
-  if (f === 3) return BEAT * 5;    /* 3160: Kopfzeile gleitet bis ~2.69s */
-  if (f === 4) return BEAT * 6;    /* 3792: Karten bis ~3.17s, Batterien laden bis ~3.33s */
-  if (f === 5) return BEAT * 8;    /* 5056: Einsaugen bis ~4.75s, Leiter endet exakt auf Takt 8 */
-  return BEAT * 17;                /* 10744: Finale-Crescendo — Auswurf Takt 1–3, Glas löst
-                                      sich 3–6, Aufstieg 6–9, Häkchen bis ~9.16s, Lichtlauf
-                                      über die Siegerkarte Takt 15–17 endet exakt mit der
-                                      Sperre; erst danach wird Weiter (= Neustart) wieder
-                                      angenommen */
+  if (f === 1) return BEAT * 9;    /* 5688: Flug bis ~3s, Fälle bis ~4.42s, drei treten bis ~5.42s aus */
+  if (f === 2) return BEAT * 8;    /* 5056: Wurf bis ~1.9s, Leiter-Neuzündung bis ~4.42s, Tarife bis ~4.5s */
+  return BEAT * 6;                 /* 3792: Aufstieg bis ~2.53s, Schriftzug endet exakt mit der
+                                      Sperre; erst danach wird Weiter (= Neustart) angenommen */
+}
+
+/* Die Auftrittsreihenfolge der Kategorien wird je Durchlauf gemischt —
+   bewusste Ausnahme vom Determinismus-Prinzip (Nutzer-Entscheid): jede
+   Vorführung zeigt den Markt in neuer Folge. Innerhalb eines Durchlaufs
+   steht die Folge fest (Zurück-Navigation bleibt konsistent). */
+function shuffleOrder(): number[] {
+  const a = CATS.map((_, i) => i);
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
 }
 
 export default function BestSelect() {
   const [view, setView] = useState<View>({ step: 0, inst: true, dir: 1, n: 0 });
+  /* Identität bis zum Mount (Server und Client rendern gleich — bei Schritt 0
+     ist ohnehin nichts sichtbar), danach je Durchlauf frisch gemischt */
+  const [order, setOrder] = useState<number[]>(() => CATS.map((_, i) => i));
   const [debug, setDebug] = useState(false);
   const viewRef = useRef(view);
   viewRef.current = view;
+  const orderRef = useRef(order);
+  orderRef.current = order;
   const busyRef = useRef(false);
   const viewportRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -88,6 +100,7 @@ export default function BestSelect() {
       bump();
       tx(stageRef.current, { opacity: 0 }, { duration: 0.632 });
       setTimeout(() => {
+        setOrder(shuffleOrder());  /* Neustart = neuer Durchlauf = neue Folge */
         setView(v => ({ step: 0, inst: true, dir: 1, n: v.n + 1 }));
         tx(stageRef.current, { opacity: 1 }, { duration: 1.264 });
       }, BEAT);
@@ -95,7 +108,7 @@ export default function BestSelect() {
     }
     const dir: 1 | -1 = n < viewRef.current.step ? -1 : 1;
     const step = Math.max(0, n);
-    lock(lockFor(step, dir));
+    lock(lockFor(step, dir, orderRef.current.indexOf(FONDS_IDX) + 1));
     bump();
     setView(v => ({ step, inst: false, dir, n: v.n + 1 }));
   }, [lock]);
@@ -133,17 +146,21 @@ export default function BestSelect() {
      nicht wegwischen) — der Neustart läuft nur über die Pille oder Tastatur */
   useEffect(() => {
     stageRef.current?.classList.toggle('final', view.step === LAST);
-    /* Schritte 12 und 16: Inhalte liegen auf dem hellen Kartenzentrum —
-       die untere Lese-Scrim (#scrim-low) blendet sich nur hier ein */
+    /* Prüfungen (Schritte 11–12): die Ergebnis-Kreise liegen auf dem hellen
+       Kartenzentrum — die untere Lese-Scrim (#scrim-low) blendet sich ein;
+       das Finale trägt die breitere #scrim-final */
     stageRef.current?.classList.toggle('lowlit',
-      view.step === STEP_FINAL + 2 || view.step === LAST);
+      view.step > STEP_FINAL && view.step < LAST);
   }, [view]);
 
-  /* ?step=N springt direkt zu einem Schritt (Probe / Screenshot);
-     &play spielt die Choreografie dieses Schritts ab statt sofort zu landen —
-     mit derselben Sperre wie im Termin, damit die Probe die echte Mechanik hat;
+  /* Mount: erst die Reihenfolge mischen, dann der Deep-Link — ?step=N springt
+     direkt zu einem Schritt (Probe / Screenshot); &play spielt die Choreografie
+     dieses Schritts ab statt sofort zu landen — mit derselben Sperre wie im
+     Termin (die Fonds-Position kommt aus der frisch gemischten Folge);
      ?debug=1 blendet das Polygon-Overlay ein */
   useEffect(() => {
+    const ord = shuffleOrder();
+    setOrder(ord);
     const search = window.location.search;
     if (/[?&]debug/.test(search)) setDebug(true);
     const jump = (search.match(/[?&]step=(\d+)/) || [])[1];
@@ -151,7 +168,7 @@ export default function BestSelect() {
       const step = Math.min(LAST, +jump);
       const play = /[?&]play/.test(search);
       bump();
-      if (play) lock(lockFor(step, 1));
+      if (play) lock(lockFor(step, 1, ord.indexOf(FONDS_IDX) + 1));
       setView(v => ({ step, inst: !play, dir: 1, n: v.n + 1 }));
     }
   }, [lock]);
@@ -268,12 +285,11 @@ export default function BestSelect() {
       <Stage ref={stageRef}>
         <MapFallback />
         <IconGlyphs />
-        <IconsLayer view={view} />
-        <WinnersLineup view={view} />
+        <IconsLayer view={view} order={order} />
         <Radar view={view} />
         <FunnelStage view={view} />
-        <CounterCard view={view} />
-        <TextRail view={view} />
+        <CounterCard view={view} order={order} />
+        <TextRail view={view} order={order} />
         <HintPill
           restart={view.step === LAST}
           onAdvance={e => { e.stopPropagation(); go(viewRef.current.step + 1); }}
