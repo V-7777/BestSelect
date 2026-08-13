@@ -54,39 +54,11 @@ export const PULSE = 1.264;              /* Ping-Welle: Ausbreitung ab LEAD, 2 T
 export const BEAM_FADE = 0.632;
 export const BEAM_OUT = LEAD + ROT + 0.316 - BEAM_FADE;
 
-export interface StepText {
-  k: string;
-  h: string;
-  s?: string;
-  n?: string;
-}
-
-/* Nur der Titel trägt eine Unterzeile — der Berater spricht, die Bühne zeigt.
-   Während die Kategorien auftreten (Schritte 1–8), steht die Schiene STILL:
-   ein Text für den ganzen Aufmarsch, die Bühne trägt den Wechsel allein.
-   Ein einziges Objekt für alle acht Schritte — die Referenzgleichheit ist
-   das Signal an TextRail, keinen Tausch zu choreografieren. */
-const ANON = 'Darstellung anonymisiert — die Namen nennen wir im persönlichen Gespräch.';
-const MARKET: StepText = {
-  k: 'Der deutsche Markt',
-  h: 'Der ganze Markt im Blick',
-  n: 'Darstellung symbolisch verdichtet — jedes Symbol steht für viele Anbieter bzw. Produkte.',
-};
-export const T: StepText[] = [
-  { k: 'Auswahlprozess',                   h: 'Weitblick Best Select', s: 'Der ganze Markt. Eine Empfehlung.' },
-  MARKET, MARKET, MARKET, MARKET, MARKET, MARKET, MARKET, MARKET,
-  { k: 'Schritt 09 · Filter',              h: 'Der Weitblick-Radar' },
-  { k: 'Schritt 10 · Best Select',         h: 'Das Beste bleibt', n: ANON },
-  /* ---- Trichterphase: zwei Prüfungen — erst gewinnt das beste Unternehmen,
-     dann gewinnt sein bester Tarif. Die Kicker tragen die Zwei-Phasen-
-     Erzählung (Prüfung 1/2). ---- */
-  { k: 'Prüfung 1 von 2 · Unternehmen',    h: 'Das beste Unternehmen setzt sich durch', n: ANON },
-  { k: 'Prüfung 2 von 2 · Tarife',         h: 'Die Tarife des Besten',
-    s: 'Das beste Unternehmen steht fest —\njetzt entscheidet der Tarif.', n: ANON },
-  { k: 'Best Select',                      h: 'Der beste Tarif bleibt' },
-];
-
-export const LAST = T.length - 1;
+/* Die Textschiene steht die GANZE Vorführung still: Titel + Unterzeile,
+   kein Kicker, kein Tausch — der Berater spricht, die Bühne zeigt.
+   Schritt 12 trägt das Finale als eigenes Crescendo, darum endet die
+   Vorführung dort: Prüfung 2 UND der Sieger sind EIN Schritt. */
+export const LAST = STEP_FINAL + 2;
 
 /* Evidenz je Schritt für Screenreader — die visuellen Ebenen sind aria-hidden.
    Die Kategorie-Schritte folgen der gemischten Auftrittsreihenfolge (order);
@@ -103,10 +75,9 @@ export function evidenceFor(step: number, order?: number[]): string {
   if (step === STEP_FINAL) return 'Best Select: acht Empfehlungen aus dem ganzen Markt, geprüft nach einem Maßstab.';
   const f = step - STEP_FINAL;
   if (f === 1) return 'Prüfung 1 von 2: Die acht besten Unternehmen durchlaufen den Trichter — fünf Kriterien: '
-    + CRIT_C.join(', ') + '. Das beste Unternehmen setzt sich durch.';
-  if (f === 2) return 'Prüfung 2 von 2: Die Tarife des besten Unternehmens durchlaufen den Trichter — '
-    + 'fünf Kriterien: ' + CRIT_P.join(', ') + '.';
-  if (f === 3) return 'Die Empfehlung: der beste Tarif des besten Unternehmens — Best Select, geprüft nach '
-    + CRIT_P.join(', ') + '.';
+    + CRIT_C.join(', ') + '. Drei bestehen.';
+  if (f === 2) return 'Prüfung 2 von 2: Der Unternehmens-Trichter fährt auf, ein neuer Trichter prüft die '
+    + 'Tarife der drei Besten — fünf Kriterien: ' + CRIT_P.join(', ')
+    + '. Der beste Tarif setzt sich durch: die Empfehlung, Best Select.';
   return '';
 }

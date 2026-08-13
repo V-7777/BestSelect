@@ -63,32 +63,17 @@ body{background:var(--ink-deep);color:var(--cream);cursor:pointer;
 #stage.noanim *,#stage.noanim *::before,#stage.noanim *::after{
   transition:none !important;animation:none !important}
 
-/* ---------- Textschiene oben links, über der Zähler-Karte ---------- */
-.rail{position:absolute;left:96px;top:56px;width:420px;text-align:left;z-index:3;
-  will-change:transform,opacity,filter}
-/* Eyebrow: winzige Glas-Pille statt Fließtext — trägt den Schritt-Marker
-   und ersetzt die frühere 1px-Linie (eine Auszeichnung genügt) */
-.kicker{display:inline-flex;align-items:center;gap:9px;
-  padding:5px 12px 5px 10px;border-radius:999px;
-  font-size:10px;font-weight:500;letter-spacing:.2em;text-transform:uppercase;
-  color:var(--lift);white-space:nowrap;
-  background:linear-gradient(180deg,rgba(95,163,245,.15),rgba(95,163,245,.05));
-  box-shadow:inset 0 1px 0 rgba(245,250,255,.13),0 0 0 1px rgba(95,163,245,.17)}
-.kicker::before{content:'';width:4px;height:4px;border-radius:50%;background:var(--blue);
-  box-shadow:0 0 9px rgba(35,120,231,.95);flex:none}
-.kicker:empty{display:none}
+/* ---------- Textschiene oben links, über der Zähler-Karte ----------
+   Steht die ganze Vorführung still: Titel + Unterzeile, kein Kicker. */
+.rail{position:absolute;left:96px;top:56px;width:420px;text-align:left;z-index:3}
 /* Selecta (Maxitype) ist eine Lizenzschrift und liegt nicht bei — steht
    zuerst im Stack, damit sie greift, sobald sie auf dem Präsentationsrechner
    installiert ist. Der gestaltete Fallback ist Schibsted Grotesk: dieselbe
    Gattung (charaktervolle Grotesk), beim Build selbst gehostet. */
 .rail h1{font-family:'Selecta',var(--font-display),'Schibsted Grotesk',Inter,system-ui,sans-serif;
   font-weight:600;font-size:39px;line-height:1.1;
-  letter-spacing:-.022em;margin:16px 0 12px;text-wrap:balance}
-/* pre-line: Schrittdaten dürfen Zeilenbrüche vorgeben */
+  letter-spacing:-.022em;margin:0 0 12px;text-wrap:balance}
 .sub{font-size:15.5px;line-height:1.55;color:var(--muted);white-space:pre-line}
-/* Fußnoten sind leise, aber lesbar: unter .64 Alpha fällt 12px-Text auf der
-   Nachtkarte unter AA-Kontrast */
-.rail .note{font-size:12px;line-height:1.5;letter-spacing:.02em;color:rgba(245,250,255,.64);margin-top:14px}
 
 /* ---------- Fußzeile: Hinweis-Pille + Fortschritt ---------- */
 .meta{position:absolute;bottom:22px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;
@@ -164,7 +149,10 @@ body:active #stage:not(.busy):not(.final) .hint-ico,
   box-shadow:inset 0 1px 0 rgba(245,250,255,.17),inset 0 0 0 1px rgba(215,226,255,.05)}
 /* 8 Zeilen statt 3: dichter gesetzt, damit die Karte unter der Textschiene
    Platz für die ganze Marktleiter behält */
-.crow{display:flex;align-items:center;justify-content:space-between;gap:14px;
+/* flex:none — als Flex-Kind darf die Zeile NICHT auf die geklemmte
+   Kernhöhe schrumpfen: sie bleibt 38px, die Fassung wächst mit --rows,
+   und alles hinter der Klemme liegt unsichtbar unter der Kante */
+.crow{display:flex;flex:none;align-items:center;justify-content:space-between;gap:14px;
   height:38px;opacity:0}
 .clabel{display:flex;align-items:center;gap:10px;
   font-size:11px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;
@@ -437,34 +425,32 @@ body:active #stage:not(.busy):not(.final) .hint-ico,
              0 0 46px -4px rgba(245,200,102,.95)}
 
 /* ---------- Trichter: dimensionales Glas (deckend, im Vordergrund) ---------- */
-#funnel{position:absolute;inset:0;width:1600px;height:900px;opacity:0;z-index:2;
+.funnel{position:absolute;inset:0;width:1600px;height:900px;opacity:0;z-index:2;
   overflow:visible;transform-origin:50% 66%;pointer-events:none}
-#funnel .lip{stroke:var(--blue);stroke-width:2.5}
-#funnel .sep{stroke:rgba(215,226,255,.14);stroke-width:1;transition:stroke 1.264s ease}
-#funnel.active .sep{stroke:rgba(215,226,255,.3);transition-delay:calc(var(--i) * 1.264s)}
-#funnel .edge{stroke-width:1.5;fill:none}
-/* Kriterien: Ladebalken-Sequenz — Wort + Zeilenband leuchten im Sekundentakt auf */
-#funnel .crit{font-family:var(--font-inter),Inter,system-ui,sans-serif;
-  font-size:13px;font-weight:500;letter-spacing:.12em;
-  text-transform:uppercase;fill:rgba(215,226,255,.55);text-anchor:middle;
+.funnel .lip{stroke:var(--blue);stroke-width:2.5}
+/* Typenschild: EIN Wort auf dem Glas statt Kriterienzeilen — glimmt,
+   hell sobald die Maschine prüft (.active), löst sich mit dem Glas */
+.funnel .flabel{font-family:var(--font-inter),Inter,system-ui,sans-serif;
+  font-size:20px;font-weight:500;letter-spacing:.26em;text-transform:uppercase;
+  fill:rgba(215,226,255,.6);text-anchor:middle;
   transition:fill 1.264s ease,opacity 1.264s ease}
-#funnel.recede .crit{opacity:0}
-#funnel.active .crit{fill:rgba(255,255,255,.95);transition-delay:calc(var(--i) * 1.264s)}
-#funnel .rowband{fill:rgba(95,163,245,0);transition:fill 1.264s ease}
-#funnel .rowband.alt{fill:rgba(215,226,255,.04)}
-#funnel.active .rowband{fill:rgba(95,163,245,.13);transition-delay:calc(var(--i) * 1.264s)}
-/* Prüfstrom-Modus: die Kriterienleiter läuft im Strom-Takt statt im
-   Sekundentakt — fast liegt in beiden Prüfungen an (Schritte 11 und 15):
-   die Leiter leuchtet, WÄHREND der Strom fällt bzw. eingesaugt wird */
-#funnel.fast.active .rowband,#funnel.fast.active .crit,#funnel.fast.active .sep{
-  transition-delay:calc(var(--i) * .316s)}
+.funnel.active .flabel{fill:rgba(255,255,255,.96)}
+.funnel.recede .flabel{opacity:0}
+.funnel .edge{stroke-width:1.5;fill:none}
+/* Zeilenbänder: die Lade-Sequenz der Maschine — leuchten nacheinander auf */
+.funnel .rowband{fill:rgba(95,163,245,0);transition:fill 1.264s ease}
+.funnel .rowband.alt{fill:rgba(215,226,255,.04)}
+.funnel.active .rowband{fill:rgba(95,163,245,.13);transition-delay:calc(var(--i) * 1.264s)}
+/* Prüfstrom-Modus: die Bänder laden im Strom-Takt statt im Sekundentakt —
+   sie leuchten, WÄHREND die Kreise fallen */
+.funnel.fast.active .rowband{transition-delay:calc(var(--i) * .316s)}
 /* Blitzen, solange der Strom durchläuft: Zeilenbänder pulsieren versetzt,
    die Lichtkante flackert mit — Animation übersteuert die fill-Transition,
    nach dem Entfernen von .flash übernimmt der ruhige active-Zustand */
 @keyframes rowFlash{0%,100%{fill:rgba(95,163,245,.05)}50%{fill:rgba(95,163,245,.22)}}
 @keyframes lipFlash{0%,100%{stroke:var(--blue)}50%{stroke:#A9CCFF}}
-#funnel.flash .rowband{animation:rowFlash .632s var(--breathe) calc(var(--i) * .158s) infinite}
-#funnel.flash .lip{animation:lipFlash .632s var(--breathe) infinite}
+.funnel.flash .rowband{animation:rowFlash .632s var(--breathe) calc(var(--i) * .158s) infinite}
+.funnel.flash .lip{animation:lipFlash .632s var(--breathe) infinite}
 
 /* ---------- Finale (Schritt 13): der Schriftzug unter dem Lichtkreis ---------- */
 #finale{position:absolute;left:50%;top:560px;width:1000px;margin-left:-500px;text-align:center;

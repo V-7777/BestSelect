@@ -49,10 +49,12 @@ function lockFor(n: number, dir: number, fondsStep: number): number {
   if (n >= 1 && n <= N_CATS) return BEAT * 3;  /* 1896: längster Stagger (~1.17s) + Auftritt */
   if (n === STEP_FINAL) return BEAT * 3;       /* 1896: Schienen-Tausch + done-Übergänge */
   const f = n - STEP_FINAL;        /* Trichterphase */
-  if (f === 1) return BEAT * 9;    /* 5688: Flug bis ~3s, Fälle bis ~4.42s, drei treten bis ~5.42s aus */
-  if (f === 2) return BEAT * 8;    /* 5056: Wurf bis ~1.9s, Leiter-Neuzündung bis ~4.42s, Tarife bis ~4.5s */
-  return BEAT * 6;                 /* 3792: Aufstieg bis ~2.53s, Schriftzug endet exakt mit der
-                                      Sperre; erst danach wird Weiter (= Neustart) angenommen */
+  if (f === 1) return BEAT * 12;   /* 7584: Flug bis ~3s, Fälle bis ~4.42s, drei treten bis ~5.42s aus,
+                                      Maschine + Kreise fahren Takt 9–12 hoch zur Warteposition */
+  return BEAT * 15;                /* 9480: Prüfung 2 MIT Finale-Crescendo — Staffelübergabe bis 1.9s,
+                                      Würfe bis ~4.1s, Tarife bis ~5.42s, Verlierer sinken ab Takt 9,
+                                      Aufstieg Takt 10–13, Schriftzug endet exakt mit der Sperre;
+                                      erst danach wird Weiter (= Neustart) angenommen */
 }
 
 /* Die Auftrittsreihenfolge der Kategorien wird je Durchlauf gemischt —
