@@ -4,6 +4,20 @@
    src/components/best-select/best-select.css — Tailwind steht hier nur für
    künftige Ausbauten bereit. */
 
+/* Selecta (Maxitype, lizenziert) — jetzt selbst gehostet: die Kapitel-
+   Stacks führen 'Selecta' seit jeher an erster Stelle, mit diesen Faces
+   greift sie überall (auch offline auf dem Präsentationsrechner).
+   Medium deckt Text (400/500), Bold die Headline-Gewichte (600/700). */
+@font-face{
+  font-family:'Selecta';
+  src:url('/fonts/selecta-medium.otf') format('opentype');
+  font-weight:400 500;font-style:normal;font-display:swap}
+@font-face{
+  font-family:'Selecta';
+  src:url('/fonts/selecta-bold.otf') format('opentype'),
+      url('/fonts/selecta-bold.ttf') format('truetype');
+  font-weight:600 700;font-style:normal;font-display:swap}
+
 /* Design-Tokens — QUELLE DER WAHRHEIT für alle Kapitel (best-select,
    version-select, strategie). Lag zuvor je Kapitel-CSS dupliziert; globals.css
    lädt über das Root-Layout auf jeder Route.

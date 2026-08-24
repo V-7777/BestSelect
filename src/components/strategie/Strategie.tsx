@@ -3,12 +3,13 @@
 /* Kapitel 3 — Strategie: der Boardroom mit dem Wandschirm. Die Erzählung
    spielt AUF dem Fernseher: erst übernimmt unsere Oberfläche den Schirm
    (Information — fünf Chips mit allem, was das Gespräch ergeben hat), dann
-   verdichtet die Analyse die Chips über eine Nabe zu drei Bedarfen, zuletzt
-   baut sich das Strategie-Dashboard auf — Absicherung, Vermögensaufbau und
-   die Altersvorsorge als Cashflow-Verlauf (Ansparphase → Renteneintritt →
-   Rentenphase), zuletzt der Monats-Cashflow als Sankey-Fluss von oben nach
-   unten (Brutto → Abzüge → Netto → Fixkosten → freier Betrag). Damit die
-   Overlays pixelgenau auf dem Fernseher sitzen,
+   verdichtet die Analyse die Chips über eine Nabe zu drei Bedarfen, dann
+   zeigt der Monats-Cashflow als Sankey-Fluss von oben nach unten den
+   Spielraum (Brutto → Abzüge → Netto → Fixkosten → freier Betrag), und als
+   Schlussbild baut sich das Strategie-Dashboard auf — Absicherung,
+   Vermögensaufbau und die Altersvorsorge als Cashflow-Verlauf (Ansparphase
+   → Renteneintritt → Rentenphase); es bleibt bis zur Kapitelwahl stehen.
+   Damit die Overlays pixelgenau auf dem Fernseher sitzen,
    ist die Bühne wie in der Präsentation eine feste 1600×900-Fläche — hier
    im Cover-Fit (randlos, Beschnitt statt Letterbox): Bühnen-Koordinaten
    bleiben 1:1 Foto-Koordinaten. Konventionen wie BestSelect:
@@ -24,7 +25,7 @@ import IconGlyphs from '@/components/best-select/IconGlyphs';
 import './strategie.css';
 
 const BEAT = 632;
-const ST_LAST = 5;   /* 0 Intro · 1 Information · 2 Analyse · 3 Strategie · 4 Cashflow · 5 Kapitelwahl */
+const ST_LAST = 5;   /* 0 Intro · 1 Information · 2 Analyse · 3 Cashflow · 4 Strategie · 5 Kapitelwahl */
 
 /* Der Fernseher im Foto (leuchtendes Panel, Bezel-sicher eingerückt):
    gemessen 936→1634 / 366→740 px im 2560×1440-Original, ×0.625 auf die
@@ -39,9 +40,31 @@ const INFO = [
   { key: 'shield', glyph: '#g-shield', label: 'Risikoprofil' },
 ];
 
-/* Analyse-Bühne (Screen-Koordinaten 436×233): Chips im Bogen über der Nabe */
-const ARC: Array<[number, number]> = [[74, 52], [146, 30], [218, 22], [290, 30], [362, 52]];
-const HUB: [number, number] = [218, 106];
+/* Analyse-Bühne (Screen-Koordinaten 436×233): der Planet bei (218, 97),
+   die fünf Informationen stehen als Monde auf EINER Bahn um ihn — ein
+   Karussell, das NUR auf Klick in den Monitor weiterdreht (sonst steht
+   das Bild). Basis-Phasen so gelegt, dass ein Mond exakt vorn (25 % =
+   unten) steht; jeder Klick addiert 20 % auf --spin, offset-distance
+   wickelt auf der geschlossenen Bahn über 100 % hinaus weiter.
+   fx/fy sind die statische Stellung, falls der Browser offset-path
+   nicht kennt. Reihenfolge = INFO. */
+const ORBIT = { rx: 130, ry: 54 };
+const MOONS = [
+  { od: 25, fx: 218, fy: 151 },
+  { od: 45, fx: 94, fy: 114 },
+  { od: 65, fx: 142, fy: 53 },
+  { od: 85, fx: 294, fy: 53 },
+  { od: 5, fx: 342, fy: 114 },
+];
+/* Tiefe je Karussell-Platz p = (i + spin) mod 5: vorn groß und voll da,
+   die hinteren klein und leise — man liest die Karte, die vorn steht */
+const DEPTH = [
+  { s: 1.55, o: 1 },    /* 25 %: vorn unten */
+  { s: 1, o: 0.85 },    /* 45 %: links */
+  { s: 0.7, o: 0.5 },   /* 65 %: hinten links */
+  { s: 0.7, o: 0.5 },   /* 85 %: hinten rechts */
+  { s: 1, o: 0.85 },    /* 5 %: rechts */
+];
 const BEDARFE = ['Absichern', 'Aufbauen', 'Vorsorgen'];
 
 /* Cashflow (viewBox 230×132): neun azurne Anspar-Balken, Marker am
@@ -63,8 +86,8 @@ function lockFor(n: number, dir: number): number {
   if (dir < 0) return BEAT;
   if (n === 1) return BEAT * 5;    /* 3160: Schirm-Übernahme + fünf Chips */
   if (n === 2) return BEAT * 7;    /* 4424: Bogen, Linien, Nabe, drei Bedarfe */
-  if (n === 3) return BEAT * 10;   /* 6320: Dashboard-Aufbau + Renten-Crescendo */
-  if (n === 4) return BEAT * 12;   /* 7584: Cashflow-Fluss Brutto → frei, Takt für Takt */
+  if (n === 3) return BEAT * 12;   /* 7584: Cashflow-Fluss Brutto → frei, Takt für Takt */
+  if (n === 4) return BEAT * 10;   /* 6320: Dashboard-Aufbau + Renten-Crescendo */
   return BEAT * 2;                 /* Intro / Kapitelwahl: 1264 */
 }
 
@@ -73,14 +96,14 @@ function stEvidence(step: number): string {
   if (step === 1) return 'Schritt 1 von 4, Information: Persönliche Situation, Einkommen, '
     + 'Ziele, bestehende Verträge und Risikoprofil — alle Informationen aus dem Gespräch, '
     + 'gesammelt auf einem Schirm.';
-  if (step === 2) return 'Schritt 2 von 4, Analyse: Die Informationen laufen in einer Nabe '
-    + 'zusammen — daraus entstehen drei Bedarfe: Absichern, Aufbauen, Vorsorgen.';
-  if (step === 3) return 'Schritt 3 von 4, Strategie: Drei Bausteine — Absicherung, '
-    + 'Vermögensaufbau und Altersvorsorge als Cashflow-Verlauf: Ansparphase bis zum '
-    + 'Renteneintritt, danach Rentenphase.';
-  if (step === 4) return 'Schritt 4 von 4, Cashflow: Vom Bruttogehalt von 3.000 Euro gehen '
+  if (step === 2) return 'Schritt 2 von 4, Analyse: Die Informationen kreisen wie Monde um '
+    + 'die Analyse — daraus entstehen drei Bedarfe: Absichern, Aufbauen, Vorsorgen.';
+  if (step === 3) return 'Schritt 3 von 4, Cashflow: Vom Bruttogehalt von 3.000 Euro gehen '
     + 'Steuern und Sozialabgaben ab, es bleiben netto 2.067,50 Euro. Nach Miete und '
     + 'Lebenshaltung bleibt der freie Betrag: 817,50 Euro — die Basis der Strategie.';
+  if (step === 4) return 'Schritt 4 von 4, Strategie: Drei Bausteine — Absicherung, '
+    + 'Vermögensaufbau und Altersvorsorge als Cashflow-Verlauf: Ansparphase bis zum '
+    + 'Renteneintritt, danach Rentenphase.';
   if (step === ST_LAST) return 'Kapitelwahl: Weiter öffnet die Zusammenfassung. '
     + 'Strategie erneut spielt das Kapitel noch einmal.';
   return 'Kapitel 3, Strategie: Aus allen Informationen des Gesprächs entsteht eine '
@@ -89,6 +112,10 @@ function stEvidence(step: number): string {
 
 export default function Strategie() {
   const [view, setView] = useState<StView>({ step: 0, inst: true, dir: 1, n: 0 });
+  /* Karussell der Analyse: Klicks in den Monitor drehen weiter (je +20 %);
+     beim Verlassen des Schritts zurück auf Anfang — jeder Durchlauf startet
+     gleich (Determinismus-Prinzip) */
+  const [spin, setSpin] = useState(0);
   const [debug, setDebug] = useState(false);
   const router = useRouter();
   const viewRef = useRef(view);
@@ -189,6 +216,11 @@ export default function Strategie() {
     window.history.replaceState(null, '', url);
   }, [view.step, view.n]);
 
+  /* Karussell zurücksetzen, sobald die Analyse verlassen wird */
+  useEffect(() => {
+    if (view.step !== 2) setSpin(0);
+  }, [view.step]);
+
   /* Sofort-Render: für einen Frame alle CSS-Übergänge kappen */
   useEffect(() => {
     if (!view.inst) return;
@@ -214,8 +246,21 @@ export default function Strategie() {
         <IconGlyphs />
 
         {/* Der Wandschirm: ab Schritt 1 übernimmt unsere Oberfläche das
-            Panel (deckende Fläche über dem eingebackenen Dashboard) */}
-        <div id="st-screen" className={s >= 1 ? ' live' : ''} aria-hidden="true">
+            Panel (deckende Fläche über dem eingebackenen Dashboard).
+            Während der Analyse dreht ein Klick IN den Monitor das Karussell
+            weiter, statt den Schritt zu wechseln — die Bühne drumherum
+            behält ihre normale Weiter-Geste. */}
+        <div
+          id="st-screen"
+          className={s >= 1 ? ' live' : ''}
+          aria-hidden="true"
+          onClick={e => {
+            if (viewRef.current.step !== 2) return;
+            e.stopPropagation();
+            if (busyRef.current) return;
+            setSpin(v => v + 1);
+          }}
+        >
 
           {/* Schritt 1 — Information: fünf Chips steigen vom Tisch auf */}
           <section className={'st-spanel' + (s === 1 ? ' on' : '')}>
@@ -236,36 +281,50 @@ export default function Strategie() {
             </div>
           </section>
 
-          {/* Schritt 2 — Analyse: die Chips laufen über Lichtlinien in einer
-              Nabe zusammen, drei Bedarfe treten darunter aus */}
-          <section className={'st-spanel' + (s === 2 ? ' on' : '')}>
+          {/* Schritt 2 — Analyse: der Planet (die Analyse) hält die fünf
+              Informationen als Monde auf einer Bahn — ein Karussell: erst
+              zeichnet sich der Ring, die Monde treten an ihre Plätze, und
+              jeder Klick in den Monitor dreht die nächste Karte nach vorn;
+              darunter treten die drei Bedarfe aus */}
+          <section
+            className={'st-spanel' + (s === 2 ? ' on' : '')}
+            style={{ '--spin': spin * 20 + '%' } as CSSProperties}
+          >
             <p className="st-shead" style={{ '--fd': '.158s' } as CSSProperties}>
               Finanzstrategie — Analyse
             </p>
-            <svg className="st-links" viewBox="0 0 436 233" aria-hidden="true">
-              {ARC.map(([x, y], i) => (
-                <line
-                  key={i}
-                  className="st-link"
-                  x1={x} y1={y + 14} x2={HUB[0]} y2={HUB[1]}
-                  pathLength={1}
-                  style={{ '--fd': (0.632 + i * 0.079).toFixed(3) + 's' } as CSSProperties}
-                />
-              ))}
+            <svg className="st-orbits" viewBox="0 0 436 233" aria-hidden="true">
+              <ellipse
+                className="st-ring"
+                cx="218" cy="97" rx={ORBIT.rx} ry={ORBIT.ry}
+                pathLength={1}
+                style={{ '--fd': '.632s' } as CSSProperties}
+              />
             </svg>
-            {ARC.map(([x, y], i) => (
-              <span
-                key={INFO[i].key}
-                className="st-node"
-                style={{
-                  left: x + 'px', top: y + 'px',
-                  '--fd': (i * 0.079).toFixed(3) + 's',
-                } as CSSProperties}
-              >
-                <svg viewBox="0 0 16 16"><use href={INFO[i].glyph} /></svg>
-              </span>
-            ))}
-            <span className="st-hub" style={{ left: HUB[0] + 'px', top: HUB[1] + 'px' }} />
+            <span className="st-planet" />
+            {MOONS.map((m, i) => {
+              const d = DEPTH[(i + spin) % 5];
+              return (
+                <span
+                  key={INFO[i].key}
+                  className="st-moon"
+                  style={{
+                    '--orb': `ellipse(${ORBIT.rx}px ${ORBIT.ry}px at 218px 97px)`,
+                    '--od': m.od + '%',
+                    '--fx': m.fx + 'px', '--fy': m.fy + 'px',
+                    '--fd': (1.264 + i * 0.158).toFixed(3) + 's',
+                    '--s': d.s, '--o': d.o,
+                  } as CSSProperties}
+                >
+                  <span className="st-moonbody">
+                    <span className="st-moontile">
+                      <svg viewBox="0 0 16 16"><use href={INFO[i].glyph} /></svg>
+                    </span>
+                    <span className="st-moonlabel">{INFO[i].label}</span>
+                  </span>
+                </span>
+              );
+            })}
             <div className="st-needs">
               {BEDARFE.map((b, i) => (
                 <span
@@ -279,9 +338,10 @@ export default function Strategie() {
             </div>
           </section>
 
-          {/* Schritt 3 — Strategie: das Dashboard baut sich auf; am letzten
-              Schritt bleibt es gedimmt stehen (das Ergebnis bleibt im Raum) */}
-          <section className={'st-spanel' + (s === 3 || s === ST_LAST ? ' on' : '') + (s === ST_LAST ? ' dim' : '')}>
+          {/* Schritt 4 — Strategie: das Dashboard baut sich als Schlussbild
+              auf und bleibt am letzten Schritt gedimmt stehen (das Ergebnis
+              bleibt im Raum — nur einmal, am Ende) */}
+          <section className={'st-spanel' + (s === 4 || s === ST_LAST ? ' on' : '') + (s === ST_LAST ? ' dim' : '')}>
             <p className="st-shead" style={{ '--fd': '.158s' } as CSSProperties}>
               Ihre Strategie
             </p>
@@ -371,11 +431,12 @@ export default function Strategie() {
             </div>
           </section>
 
-          {/* Schritt 4 — Cashflow: vom Brutto zum freien Betrag als Fluss von
+          {/* Schritt 3 — Cashflow: vom Brutto zum freien Betrag als Fluss von
               oben nach unten (Sankey-Teaser). Der Hauptstrom verjüngt sich mit
               jeder Station, die Abzüge zweigen als warme Bänder nach rechts ab;
-              was unten ankommt, ist gold — der Spielraum der Strategie. */}
-          <section className={'st-spanel' + (s === 4 ? ' on' : '')}>
+              was unten ankommt, ist gold — der Spielraum, den die Strategie
+              anschließend verteilt. */}
+          <section className={'st-spanel' + (s === 3 ? ' on' : '')}>
             <p className="st-shead" style={{ '--fd': '.158s' } as CSSProperties}>
               Finanzstrategie — Cashflow
             </p>
@@ -428,25 +489,9 @@ export default function Strategie() {
 
         {/* Tischkante: Titel je Schritt im Lampenlicht, am Ende die Pillen */}
         <main id="st-captions">
-          <section className={'st-panel' + (s === 0 ? ' on' : '')}>
-            <p className="st-kicker st-rise">Kapitel 3 — Strategie</p>
-            <h1 className="st-h1 st-rise d1">Ihre Strategie.</h1>
-            <p className="st-sub st-rise d2">Aus allen Informationen. Individuell entwickelt.</p>
-          </section>
-          <section className={'st-panel' + (s === 1 ? ' on' : '')}>
-            <h1 className="st-h1 st-line st-rise">Alle Informationen. Gesammelt.</h1>
-          </section>
-          <section className={'st-panel' + (s === 2 ? ' on' : '')}>
-            <h1 className="st-h1 st-line st-rise">Aus Informationen wird Bedarf.</h1>
-          </section>
-          <section className={'st-panel' + (s === 3 ? ' on' : '')}>
-            <h1 className="st-h1 st-line st-rise">Drei Bausteine. Ein Plan.</h1>
-          </section>
-          <section className={'st-panel' + (s === 4 ? ' on' : '')}>
-            <h1 className="st-h1 st-line st-rise">Vom Brutto zum freien Betrag.</h1>
-          </section>
+          {/* Keine Tischtexte: das Bild spricht — nur am Ende stehen die
+              beiden Pillen der Kapitelwahl */}
           <section className={'st-panel' + (s === ST_LAST ? ' on' : '')}>
-            <p className="st-kicker st-rise">Wie geht es weiter?</p>
             <div className="st-pills" onClick={e => e.stopPropagation()}>
               <Link href="/" className="st-pill st-rise d1">
                 <span>Weiter — Zusammenfassung</span>
