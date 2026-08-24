@@ -3,3 +3,27 @@
 /* Die Präsentations-Styles (Bühne, Symbole, Radar, Choreografie) liegen in
    src/components/best-select/best-select.css — Tailwind steht hier nur für
    künftige Ausbauten bereit. */
+
+/* Design-Tokens — QUELLE DER WAHRHEIT für alle Kapitel (best-select,
+   version-select, strategie). Lag zuvor je Kapitel-CSS dupliziert; globals.css
+   lädt über das Root-Layout auf jeder Route.
+   Hologramm-Töne: das Azur des Tisch-Leuchtstreifens in Background2
+   (gemessen ≈ rgb(48,98,153)) — dieselbe Familie wie --lift. */
+:root{
+  --ink:#09192C; --ink-deep:#050E19;
+  --blue:#2378E7; --lift:#5FA3F5; --cream:#F7EFE9;
+  --muted:rgba(245,250,255,.68); --hair:rgba(215,226,255,.14);
+  --glass-hi:rgba(245,250,255,.16); --glass-lo:rgba(245,250,255,.07);
+  --halo:rgba(215,226,255,.35);
+  --holo:#5FA3F5; --holo-hi:#9ED1FF;
+  --holo-line:rgba(120,180,245,.35); --holo-glow:rgba(95,163,245,.45);
+  /* Bewegungskurven: keine linearen/ease-in-out-Übergänge.
+     --ease   dramatischer Ein-/Auslauf (Erzählmomente)
+     --glide  ruhiges Gleiten mit Masse (Zustandswechsel)
+     --spring federnder Auftritt ohne Nachwippen (Auftauchen)
+     --breathe sinusnahes Atmen (Dauerpuls der Nabe) */
+  --ease:cubic-bezier(.76,0,.1,1);
+  --glide:cubic-bezier(.32,.72,0,1);
+  --spring:cubic-bezier(.22,1,.36,1);
+  --breathe:cubic-bezier(.4,0,.6,1);
+}

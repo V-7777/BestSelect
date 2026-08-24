@@ -5,8 +5,10 @@
    reine Funktion des View-Zustands {step, inst, dir}. */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { CATS, FONDS_IDX, LAST, LEAD, N_CATS, ROT, STEP_FINAL, STEP_RADAR, WIN_ANIM } from '@/lib/best-select/constants';
 import { bump, reduced, tx } from '@/lib/best-select/animate';
+import { useStageFit } from '@/lib/best-select/stage-fit';
 import Stage from './Stage';
 import MapFallback from './MapFallback';
 import IconGlyphs from './IconGlyphs';
@@ -76,6 +78,7 @@ export default function BestSelect() {
      ist ohnehin nichts sichtbar), danach je Durchlauf frisch gemischt */
   const [order, setOrder] = useState<number[]>(() => CATS.map((_, i) => i));
   const [debug, setDebug] = useState(false);
+  const router = useRouter();
   const viewRef = useRef(view);
   viewRef.current = view;
   const orderRef = useRef(order);
@@ -95,17 +98,26 @@ export default function BestSelect() {
     }, reduced() ? 120 : ms);
   }, []);
 
+  /* Neustart (Pille „Neustart" am Finale): Ausblenden 1 Takt, Rücksprung,
+     Einblenden 2 Takte — exakt 1896 ms Sperre */
+  const restart = useCallback(() => {
+    if (busyRef.current) return;
+    lock(BEAT * 3);
+    bump();
+    tx(stageRef.current, { opacity: 0 }, { duration: 0.632 });
+    setTimeout(() => {
+      setOrder(shuffleOrder());  /* Neustart = neuer Durchlauf = neue Folge */
+      setView(v => ({ step: 0, inst: true, dir: 1, n: v.n + 1 }));
+      tx(stageRef.current, { opacity: 1 }, { duration: 1.264 });
+    }, BEAT);
+  }, [lock]);
+
   const go = useCallback((n: number) => {
     if (busyRef.current) return;
     if (n > LAST) {
-      lock(BEAT * 3);              /* 1896: Ausblenden 1 Takt + Einblenden 2 Takte, exakt */
-      bump();
-      tx(stageRef.current, { opacity: 0 }, { duration: 0.632 });
-      setTimeout(() => {
-        setOrder(shuffleOrder());  /* Neustart = neuer Durchlauf = neue Folge */
-        setView(v => ({ step: 0, inst: true, dir: 1, n: v.n + 1 }));
-        tx(stageRef.current, { opacity: 1 }, { duration: 1.264 });
-      }, BEAT);
+      /* Chronologie: nach dem Finale folgt das Strategie-Kapitel — Weiter
+         (Tastatur) navigiert dorthin, wie die primäre Pille am Finale */
+      router.push('/strategie');
       return;
     }
     const dir: 1 | -1 = n < viewRef.current.step ? -1 : 1;
@@ -113,7 +125,7 @@ export default function BestSelect() {
     lock(lockFor(step, dir, orderRef.current.indexOf(FONDS_IDX) + 1));
     bump();
     setView(v => ({ step, inst: false, dir, n: v.n + 1 }));
-  }, [lock]);
+  }, [lock, router]);
 
   /* Zwischenfrage im Termin: Esc beendet die laufende Choreografie sofort in
      ihren Endzustand und löst die Sperre — der Berater kann sprechen, die
@@ -131,6 +143,8 @@ export default function BestSelect() {
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'Enter' || e.key === 'PageDown') {
+        if (document.activeElement instanceof HTMLElement &&
+            document.activeElement.closest('.hint-pill')) return;   /* Pille behält Enter/Leertaste */
         e.preventDefault(); go(viewRef.current.step + 1);
       }
       if (e.key === 'ArrowLeft' || e.key === 'Backspace' || e.key === 'PageUp') {
@@ -207,73 +221,10 @@ export default function BestSelect() {
     });
   }, [view]);
 
-  /* Browser-Zoom darf die Bühne wirklich vergrößern (Barrierefreiheit):
-     Zoom hebt devicePixelRatio an — die Skalierung wächst mit und der
-     Viewport wird scrollbar statt die Vergrößerung wegzurechnen.
-     Aber: auch ein Monitorwechsel ändert devicePixelRatio (Laptop 2× →
-     Beamer 1× — der Ernstfall im Termin). Dann wird die Basis neu geeicht
-     statt skaliert, sonst halbiert/verdoppelt sich die Bühne beim Rüberziehen.
-     Unterscheidung über die Bildschirm-Identität: Zoom lässt in Chromium
-     die CSS-Maße (screen.*) stehen, in Firefox die physischen Maße
-     (screen.* · dpr); die availLeft/Top-Origin trennt gleichgroße Monitore.
-     Ändern sich CSS- UND Physik-Signatur, ist es ein anderer Bildschirm. */
-  useEffect(() => {
-    const viewport = viewportRef.current, stage = stageRef.current;
-    if (!viewport || !stage) return;
-    const screenKeys = () => {
-      const d = window.devicePixelRatio || 1;
-      const scr = window.screen as Screen & { availLeft?: number; availTop?: number };
-      const l = scr.availLeft ?? 0, t = scr.availTop ?? 0;
-      const r = (v: number) => Math.round(v / 8);   /* Rundungsjitter schlucken */
-      return {
-        css: `${scr.width},${scr.height},${l},${t}`,
-        phys: `${r(scr.width * d)},${r(scr.height * d)},${r(l * d)},${r(t * d)}`,
-      };
-    };
-    let baseDpr = window.devicePixelRatio || 1;
-    let last = { dpr: baseDpr, ...screenKeys() };
-    function fit() {
-      if (!viewport || !stage) return;
-      const dpr = window.devicePixelRatio || 1;
-      const k = screenKeys();
-      if (dpr !== last.dpr && k.css !== last.css && k.phys !== last.phys) {
-        baseDpr = dpr;             /* anderer Bildschirm: neu eichen, Zoom = 1 */
-      }
-      last = { dpr, ...k };
-      const zoom = dpr / baseDpr;
-      const s = Math.min(window.innerWidth / 1600, window.innerHeight / 900) * Math.max(1, zoom);
-      const over = 1600 * s > window.innerWidth + 1 || 900 * s > window.innerHeight + 1;
-      document.documentElement.style.overflow = over ? 'auto' : 'hidden';
-      document.body.style.overflow = over ? 'auto' : 'hidden';
-      if (over) {
-        viewport.style.position = 'absolute';
-        viewport.style.width = Math.max(window.innerWidth, Math.ceil(1600 * s)) + 'px';
-        viewport.style.height = Math.max(window.innerHeight, Math.ceil(900 * s)) + 'px';
-      } else {
-        viewport.style.position = 'fixed';
-        viewport.style.width = '';
-        viewport.style.height = '';
-      }
-      stage.style.transform = 'translate(-50%,-50%) scale(' + s + ')';
-    }
-    /* resize feuert beim Monitorwechsel nicht in jedem Browser — eine
-       matchMedia-Kette auf die jeweils aktuelle Auflösung schließt die Lücke
-       und wird nach jedem dpr-Wechsel neu gespannt */
-    let mq: MediaQueryList | null = null;
-    const onDprChange = () => { fit(); armDprWatch(); };
-    const armDprWatch = () => {
-      mq?.removeEventListener('change', onDprChange);
-      mq = window.matchMedia(`(resolution: ${window.devicePixelRatio || 1}dppx)`);
-      mq.addEventListener('change', onDprChange);
-    };
-    window.addEventListener('resize', fit);
-    armDprWatch();
-    fit();
-    return () => {
-      window.removeEventListener('resize', fit);
-      mq?.removeEventListener('change', onDprChange);
-    };
-  }, []);
+  /* Bühnen-Fit inkl. Browser-Zoom/Monitorwechsel-Logik: geteilter Hook
+     (src/lib/best-select/stage-fit.ts) — hier als 'contain', die ganze
+     Nachtkarte bleibt sichtbar */
+  useStageFit(viewportRef, stageRef, { w: 1600, h: 900, fit: 'contain' });
 
   return (
     <div
@@ -295,6 +246,7 @@ export default function BestSelect() {
         <HintPill
           restart={view.step === LAST}
           onAdvance={e => { e.stopPropagation(); go(viewRef.current.step + 1); }}
+          onRestart={e => { e.stopPropagation(); restart(); }}
         />
         <StepCounter step={view.step} />
         {debug && <DebugOverlay />}

@@ -67,7 +67,7 @@ function vsEvidence(step: number): string {
   if (step === 2) return 'Rückblick 2 von 2: Prüfung 1, Unternehmensanalyse — von acht Unternehmen '
     + 'bestehen drei. Die drei wandern in Prüfung 2, Produktanalyse — der beste Tarif bleibt: Best Select.';
   if (step === VS_LAST) return 'Versionswahl: Version 1 startet die vollständige Präsentation. '
-    + 'Version 2 spielt die Kurzfassung erneut.';
+    + 'Kapitel 3 öffnet das Strategie-Kapitel. Version 2 spielt die Kurzfassung erneut.';
   return 'Weitblick Best Select — die Kurzfassung. Klick oder Pfeiltaste führt durch zwei Schritte.';
 }
 
@@ -387,6 +387,15 @@ export default function VersionSelect() {
           <div className="vs-pills" onClick={e => e.stopPropagation()}>
             <Link href="/presentation" className="vs-pill vs-rise d1">
               <span>Version 1 — Präsentation</span>
+              <span className="vs-ico" aria-hidden="true">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor"
+                  strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3.2 8h9.4M8.9 4.3 12.6 8l-3.7 3.7" />
+                </svg>
+              </span>
+            </Link>
+            <Link href="/strategie" className="vs-pill vs-rise d2">
+              <span>Kapitel 3 — Strategie</span>
               <span className="vs-ico" aria-hidden="true">
                 <svg viewBox="0 0 16 16" fill="none" stroke="currentColor"
                   strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
