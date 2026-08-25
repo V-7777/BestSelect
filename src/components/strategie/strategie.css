@@ -1,7 +1,7 @@
 /* ============================================================
    STRATEGIE — Kapitel 3 im Boardroom: die Erzählung spielt auf
    dem Wandschirm. Steuerung: Klick (weiter) · ← zurück ·
-   Leertaste/→ weiter. Am Ende wählen zwei Pillen den Weg.
+   Leertaste/→ weiter. Am Ende fragen zwei Pillen: Nochmal · Zurück zur Übersicht.
    Tokens (Farben, Holo-Töne, Kurven) liegen in src/app/globals.css.
    ============================================================ */
 
@@ -241,65 +241,58 @@ body{background:var(--ink-deep);color:var(--cream);cursor:pointer;
 .st-cftext.mark{font-size:6.5px;fill:rgba(247,239,233,.82);transition-delay:4.740s}
 .st-cftext.warm{fill:rgba(245,200,102,.85)}
 
-/* ---------- Schritt 4: Cashflow (Sankey-Teaser) ----------
-   Ein Fluss von oben nach unten: der Hauptstrom (Azur) verjüngt sich an
-   jeder Station proportional zum Betrag, die Abzüge zweigen als warme
-   Bänder (Koralle) nach rechts in ihre Aufstellungen ab. Der Takt läuft
-   die Stationen von oben nach unten ab (0.632 → 6.320 s auf dem Raster);
-   was unten ankommt, ist gold — wie der Gewinner-Tarif. */
-.st-sankey{position:absolute;inset:0;width:100%;height:100%}
-/* Strom-Segmente wischen von oben herab (clip-path auf der fill-box) */
-.st-flowseg{fill:url(#stFlow);clip-path:inset(-4% -4% 100% -4%);
-  transition:clip-path .632s var(--glide) var(--fd,0s)}
-.st-spanel.on .st-flowseg{clip-path:inset(-4% -4% -4% -4%)}
-.st-flowseg.f1{--fd:1.264s}
-.st-flowseg.f2{--fd:3.792s}
-.st-flowseg.f3{--fd:5.688s}
-/* Abzweige wischen zur Seite hinaus — Abfluss, warm markiert */
-.st-branch{fill:rgba(244,155,122,.24);clip-path:inset(-4% 100% -4% -4%);
-  transition:clip-path .632s var(--glide) var(--fd,0s)}
-.st-spanel.on .st-branch{clip-path:inset(-4% -4% -4% -4%)}
-.st-branch.b1{--fd:1.896s}
-.st-branch.b2{--fd:4.424s}
-/* Stationen des Hauptstroms: Glas-Pillen mit Betrag */
-.st-fnode{position:absolute;display:flex;flex-direction:column;align-items:center;gap:1px;
-  padding:5px 14px;border-radius:8px;white-space:nowrap;
-  opacity:0;transform:translate(-50%,-50%) translateY(10px);
-  background:linear-gradient(180deg,rgba(26,62,100,.93),rgba(10,30,51,.95));
-  box-shadow:inset 0 1px 0 rgba(215,226,255,.24),0 0 0 1px rgba(215,226,255,.15),
-             0 3px 11px rgba(3,9,17,.55);
-  transition:transform 1.264s var(--spring) var(--fd,0s),
-             opacity 1.264s var(--glide) var(--fd,0s)}
-.st-spanel.on .st-fnode{opacity:1;transform:translate(-50%,-50%)}
-.st-fnode.brutto{left:150px;top:35px;--fd:.632s}
-.st-fnode.netto{left:150px;top:113px;--fd:3.160s}
-/* Der freie Betrag: warmer Bloom — Ecru/Gold, die Familie des Ergebnisses */
-.st-fnode.frei{left:150px;top:205px;--fd:6.320s;
-  background:linear-gradient(180deg,rgba(84,58,26,.92),rgba(46,32,14,.94));
-  box-shadow:inset 0 1px 0 rgba(255,250,243,.3),0 0 0 1px rgba(245,200,102,.42),
-             0 0 22px -2px rgba(245,200,102,.6)}
-.st-fnode.frei .st-flabel{color:rgba(245,200,102,.92)}
-.st-flabel{font-size:6.5px;font-weight:500;letter-spacing:.16em;text-transform:uppercase;
-  color:#9CC6FA}
-.st-famount{font-size:11px;font-weight:500;color:#fff;letter-spacing:.01em;
-  font-variant-numeric:tabular-nums}
-/* Aufstellungen rechts: wohin die Abzweige führen */
-.st-fbox{position:absolute;left:284px;width:140px;padding:6px 9px;border-radius:6px;
-  display:flex;flex-direction:column;gap:3px;
+/* ---------- Schritt 3: Cashflow — Finanzstrom (90°-Leitungen) ----------
+   Dünne Lichtleitungen statt Flächen: obere Schiene, 90°-Bogen rechts
+   außen, untere Schiene. Jede Leitung zeichnet sich in Fluss-Richtung,
+   ein heller Impuls wandert danach dauerhaft die Strecke ab; die Karten
+   poppen auf, sobald ihre Station erreicht ist (0.632 → 5.688 s). */
+.st-flowmap{position:absolute;inset:0;width:100%;height:100%}
+.st-wire{fill:none;stroke:rgba(95,163,245,.4);stroke-width:1.5;stroke-linecap:round;
+  stroke-dasharray:1;stroke-dashoffset:1;
+  transition:stroke-dashoffset .632s var(--glide) var(--fd,0s)}
+.st-spanel.on .st-wire{stroke-dashoffset:0}
+/* Lichtimpuls: ein kurzes helles Segment läuft die Leitung in
+   Fluss-Richtung ab — sichtbar, sobald die Leitung gezeichnet ist */
+.st-pulse{fill:none;stroke:var(--holo-hi);stroke-width:2;stroke-linecap:round;
+  stroke-dasharray:.14 .86;stroke-dashoffset:.14;opacity:0;
+  filter:drop-shadow(0 0 4px rgba(120,185,255,.9));
+  transition:opacity .632s var(--glide) calc(var(--fd,0s) + .632s);
+  animation:stFlowPulse 2.528s linear infinite}
+.st-spanel.on .st-pulse{opacity:.9}
+@keyframes stFlowPulse{from{stroke-dashoffset:.14}to{stroke-dashoffset:-.86}}
+/* Karten des Kontenbaums: Hauptspalte (Titel + Betrag, zentriert) —
+   poppen federnd auf, sobald ihre Leitung sie erreicht */
+.st-tcard{position:absolute;width:118px;padding:6px 8px;border-radius:7px;
+  display:flex;flex-direction:column;gap:1px;text-align:center;
   background:linear-gradient(180deg,rgba(158,209,255,.12),rgba(95,163,245,.04));
-  box-shadow:inset 0 1px 0 rgba(158,209,255,.18),0 0 0 1px rgba(120,180,245,.22);
-  opacity:0;transform:translateX(12px);
-  transition:transform 1.264s var(--spring) var(--fd,0s),
-             opacity 1.264s var(--glide) var(--fd,0s)}
-.st-spanel.on .st-fbox{opacity:1;transform:none}
-.st-fbox.b1{top:46px;--fd:2.528s}
-.st-fbox.b2{top:131px;--fd:5.056s}
-.st-frow{display:flex;justify-content:space-between;gap:8px;white-space:nowrap;
+  box-shadow:inset 0 1px 0 rgba(158,209,255,.2),0 0 0 1px rgba(120,180,245,.28);
+  opacity:0;transform:translateY(8px) scale(.85);
+  transition:transform .632s var(--spring) var(--fd,0s),
+             opacity .632s var(--glide) var(--fd,0s)}
+.st-spanel.on .st-tcard{opacity:1;transform:none}
+/* Der freie Betrag: goldene Fassung — das Ergebnis des Stroms */
+.st-tcard.gold{box-shadow:inset 0 1px 0 rgba(255,250,243,.24),
+  0 0 0 1px rgba(245,200,102,.45),0 0 18px -2px rgba(245,200,102,.5)}
+.st-tcard.gold .st-famount{color:#F5C866;text-shadow:0 0 10px rgba(245,200,102,.5)}
+.st-ftitle{font-size:7.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+  color:rgba(230,244,255,.92)}
+.st-famount{font-size:13px;font-weight:700;color:#fff;letter-spacing:.01em;
+  font-variant-numeric:tabular-nums}
+/* Andock-Karten der Abzweige: Titelzeile + kleine Aufstellung */
+.st-tside{position:absolute;width:136px;padding:5px 9px;border-radius:7px;
+  display:flex;flex-direction:column;gap:2px;
+  background:linear-gradient(180deg,rgba(158,209,255,.10),rgba(95,163,245,.035));
+  box-shadow:inset 0 1px 0 rgba(158,209,255,.16),0 0 0 1px rgba(120,180,245,.22);
+  opacity:0;transform:translateX(10px) scale(.95);
+  transition:transform .632s var(--spring) var(--fd,0s),
+             opacity .632s var(--glide) var(--fd,0s)}
+.st-spanel.on .st-tside{opacity:1;transform:none}
+.st-trow{display:flex;justify-content:space-between;gap:8px;white-space:nowrap;
   font-size:6.5px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;
   color:var(--muted);font-variant-numeric:tabular-nums}
-.st-frow.head{font-size:7px;color:rgba(230,244,255,.92);padding-bottom:2px;
-  box-shadow:inset 0 -1px 0 rgba(158,209,255,.14)}
-.st-frow .neg{color:#F49B7A}
+.st-trow.head{font-size:7px;font-weight:700;color:rgba(230,244,255,.92);
+  padding-bottom:2px;box-shadow:inset 0 -1px 0 rgba(158,209,255,.14)}
+.st-trow .neg{color:#F49B7A}
 
 /* ============================================================
    Tischkante: Titel im Lampenlicht, am Ende die Pillen
@@ -319,7 +312,7 @@ body{background:var(--ink-deep);color:var(--cream);cursor:pointer;
 .st-panel.on .d2{transition-delay:.474s}
 .st-panel.on .d3{transition-delay:.632s}
 
-/* ---------- Kapitelwahl: zwei Pillen (Rezept aus .vs-pill) ---------- */
+/* ---------- Kapitelende: zwei Pillen (Rezept aus .vs-pill) ---------- */
 .st-pills{display:flex;flex-wrap:wrap;justify-content:center;gap:16px}
 .st-pill{display:inline-flex;align-items:center;gap:14px;
   padding:8px 8px 8px 24px;border-radius:999px;color:rgba(245,250,255,.86);
@@ -367,10 +360,11 @@ body{background:var(--ink-deep);color:var(--cream);cursor:pointer;
   .st-tile,.st-moontile,.st-planet{outline:1px solid CanvasText}
   .st-card{outline:1px solid CanvasText}
   .st-need,.st-pill,.st-meta{outline:1px solid CanvasText}
-  .st-fnode,.st-fbox{outline:1px solid CanvasText}
+  .st-wire,.st-pulse{stroke:CanvasText}
+  .st-tcard,.st-tside{outline:1px solid CanvasText}
   .st-bar.draw{fill:Highlight;forced-color-adjust:none}
   .st-fill{background:Highlight;forced-color-adjust:none}
-  .st-fnode.frei{background:Highlight;forced-color-adjust:none}
+  .st-tcard.gold .st-famount{color:Highlight;forced-color-adjust:none}
 }
 
 @media (prefers-reduced-motion: reduce){

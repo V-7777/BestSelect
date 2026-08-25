@@ -1,7 +1,11 @@
 'use client';
 
-/* Einstiegsseite: Kurzfassung der Präsentation in zwei Schritten auf dem
-   Showroom-Hintergrund, danach die Versionswahl. Zeigen statt erzählen:
+/* Einstiegsseite: zuerst das Inhaltsverzeichnis — die Kapitelwahl steht
+   ganz am Anfang (Version 1 Präsentation · Version 2 Kurzfassung · Kapitel 3
+   Strategie). Version 2 spielt die Kurzfassung der Präsentation in zwei
+   Schritten auf dem Showroom-Hintergrund; am Kapitelende fragen wie in
+   allen Kapiteln zwei Pillen: Nochmal · Zurück zur Übersicht. Zeigen statt
+   erzählen:
    die Dioramen bauen sich als Hologramme aus dem Präsentationstisch auf
    (2 Takte, von unten nach oben, im Azur des Tisch-Leuchtstreifens), die
    Titel liegen an der vorderen Tischkante im Lampenlicht — das Weitblick-
@@ -20,7 +24,7 @@ import IconGlyphs from '@/components/best-select/IconGlyphs';
 import './version-select.css';
 
 const BEAT = 632;
-const VS_LAST = 3;                 /* 0 Intro · 1 Markt · 2 Auswahl · 3 Versionswahl */
+const VS_LAST = 3;                 /* 0 Kapitelwahl (Index) · 1 Markt · 2 Auswahl · 3 Kapitelende */
 
 /* Summe aller Marktkategorien — bleibt automatisch synchron zur Präsentation */
 const TOTAL = CATS.reduce((s, c) => s + c.total, 0);
@@ -57,7 +61,7 @@ function lockFor(n: number, dir: number): number {
   if (dir < 0) return BEAT;
   if (n === 1) return BEAT * 5;    /* 3160: Hologramm-Aufbau (2 Takte), Leiter, Zählen */
   if (n === 2) return BEAT * 15;   /* 9480: Prüfung 1 → Staffelübergabe → Prüfung 2 → Sieger */
-  return BEAT * 2;                 /* Intro / Versionswahl: 1264 */
+  return BEAT * 2;                 /* Kapitelwahl / Kapitelende: 1264 */
 }
 
 /* Evidenz je Schritt für Screenreader — die Dioramen sind aria-hidden */
@@ -66,9 +70,10 @@ function vsEvidence(step: number): string {
     + fmt(TOTAL) + ' geprüfte Anbieter und Produkte — von Bausparkassen bis Investmentfonds.';
   if (step === 2) return 'Rückblick 2 von 2: Prüfung 1, Unternehmensanalyse — von acht Unternehmen '
     + 'bestehen drei. Die drei wandern in Prüfung 2, Produktanalyse — der beste Tarif bleibt: Best Select.';
-  if (step === VS_LAST) return 'Versionswahl: Version 1 startet die vollständige Präsentation. '
-    + 'Kapitel 3 öffnet das Strategie-Kapitel. Version 2 spielt die Kurzfassung erneut.';
-  return 'Weitblick Best Select — die Kurzfassung. Klick oder Pfeiltaste führt durch zwei Schritte.';
+  if (step === VS_LAST) return 'Kapitelende: Nochmal spielt die Kurzfassung noch einmal. '
+    + 'Zurück zur Übersicht öffnet die Kapitelwahl.';
+  return 'Weitblick Best Select — Kapitelwahl: Version 1 startet die vollständige Präsentation. '
+    + 'Version 2 spielt die Kurzfassung in zwei Schritten. Kapitel 3 öffnet das Strategie-Kapitel.';
 }
 
 export default function VersionSelect() {
@@ -94,9 +99,10 @@ export default function VersionSelect() {
     }, reduced() ? 120 : ms);
   }, []);
 
-  /* Neustart der Kurzfassung (Pille „Version 2" / Weiter am letzten Schritt):
-     Ausblenden 1 Takt, Rücksprung, Einblenden 2 Takte — wie in BestSelect */
-  const replay = useCallback(() => {
+  /* Zurück zur Kapitelwahl (Pille „Zurück zur Übersicht" / Weiter am
+     Kapitelende): Ausblenden 1 Takt, Rücksprung auf den Index, Einblenden
+     2 Takte — wie der Neustart in BestSelect */
+  const toIndex = useCallback(() => {
     if (busyRef.current) return;
     lock(BEAT * 3);
     bump();
@@ -107,15 +113,28 @@ export default function VersionSelect() {
     }, BEAT);
   }, [lock]);
 
+  /* Nochmal (Pille am Kapitelende): Ausblenden 1 Takt, dann spielt Schritt 1
+     mit seiner vollen Choreografie — die Sperre deckt beides */
+  const again = useCallback(() => {
+    if (busyRef.current) return;
+    lock(BEAT + lockFor(1, 1));
+    bump();
+    tx(rootRef.current, { opacity: 0 }, { duration: 0.632 });
+    setTimeout(() => {
+      setView(v => ({ step: 1, inst: false, dir: 1, n: v.n + 1 }));
+      tx(rootRef.current, { opacity: 1 }, { duration: 1.264 });
+    }, BEAT);
+  }, [lock]);
+
   const go = useCallback((n: number) => {
     if (busyRef.current) return;
-    if (n > VS_LAST) { replay(); return; }
+    if (n > VS_LAST) { toIndex(); return; }
     const dir: 1 | -1 = n < viewRef.current.step ? -1 : 1;
     const step = Math.max(0, n);
     lock(lockFor(step, dir));
     bump();
     setView(v => ({ step, inst: false, dir, n: v.n + 1 }));
-  }, [lock, replay]);
+  }, [lock, toIndex]);
 
   /* Esc beendet die laufende Choreografie sofort in ihren Endzustand */
   const settle = useCallback(() => {
@@ -144,23 +163,30 @@ export default function VersionSelect() {
     return () => document.removeEventListener('keydown', onKey);
   }, [go, settle]);
 
-  /* Mount: Deep-Link ?step=N, dann Einblenden der Seite */
+  /* Mount: Deep-Link ?step=N (&play spielt die Choreografie des Schritts —
+     so landet „Weiter" aus der Strategie direkt in der laufenden
+     Kurzfassung), dann Einblenden der Seite */
   useEffect(() => {
-    const jump = (window.location.search.match(/[?&]step=(\d+)/) || [])[1];
+    const search = window.location.search;
+    const jump = (search.match(/[?&]step=(\d+)/) || [])[1];
     if (jump) {
+      const step = Math.min(VS_LAST, +jump);
+      const play = /[?&]play/.test(search);
       bump();
-      setView(v => ({ step: Math.min(VS_LAST, +jump), inst: true, dir: 1, n: v.n + 1 }));
+      if (play) lock(lockFor(step, 1));
+      setView(v => ({ step, inst: !play, dir: 1, n: v.n + 1 }));
     }
     lock(BEAT * 2);
     tx(rootRef.current, { opacity: 1 }, { duration: 1.264 });
   }, [lock]);
 
-  /* ?step-Spiegel: F5 landet wieder auf demselben Schritt */
+  /* ?step-Spiegel: F5 landet wieder auf demselben Schritt; &play wird verbraucht */
   useEffect(() => {
     if (view.n === 0) return;
     const url = new URL(window.location.href);
     if (view.step === 0) url.searchParams.delete('step');
     else url.searchParams.set('step', String(view.step));
+    url.searchParams.delete('play');
     window.history.replaceState(null, '', url);
   }, [view.step, view.n]);
 
@@ -291,17 +317,50 @@ export default function VersionSelect() {
       id="vs-root"
       ref={rootRef}
       onClick={() => {
-        if (viewRef.current.step === VS_LAST) return;   /* Versionswahl: nur die Pillen */
-        go(viewRef.current.step + 1);
+        const st = viewRef.current.step;
+        if (st === 0 || st === VS_LAST) return;   /* Kapitelwahl / Kapitelende: nur die Pillen */
+        go(st + 1);
       }}
     >
       <div id="vs-bg" aria-hidden="true" />
       <IconGlyphs />
 
       <main id="vs-content">
-        <section className={'vs-panel' + (view.step === 0 ? ' on' : '')}>
+        {/* Index: die Kapitelwahl steht ganz am Anfang — Titel, Untertitel
+            und die drei Pillen; die Bühne drumherum schaltet hier nicht weiter */}
+        <section className={'vs-panel vs-index' + (view.step === 0 ? ' on' : '')}>
           <h1 className="vs-h1 vs-rise">Weitblick Best Select</h1>
           <p className="vs-sub vs-rise d1">Der ganze Markt. Eine Empfehlung.</p>
+          <p className="vs-kicker vs-rise d2">Kapitel wählen</p>
+          <div className="vs-pills" onClick={e => e.stopPropagation()}>
+            <Link href="/presentation" className="vs-pill vs-rise d3">
+              <span>Version 1 — Präsentation</span>
+              <span className="vs-ico" aria-hidden="true">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor"
+                  strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3.2 8h9.4M8.9 4.3 12.6 8l-3.7 3.7" />
+                </svg>
+              </span>
+            </Link>
+            <button type="button" className="vs-pill vs-rise d4" onClick={() => go(1)}>
+              <span>Version 2 — Kurzfassung</span>
+              <span className="vs-ico" aria-hidden="true">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor"
+                  strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3.2 8h9.4M8.9 4.3 12.6 8l-3.7 3.7" />
+                </svg>
+              </span>
+            </button>
+            <Link href="/strategie" className="vs-pill vs-rise d5">
+              <span>Kapitel 3 — Strategie</span>
+              <span className="vs-ico" aria-hidden="true">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor"
+                  strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3.2 8h9.4M8.9 4.3 12.6 8l-3.7 3.7" />
+                </svg>
+              </span>
+            </Link>
+          </div>
         </section>
 
         {/* Rückblick 1: Nachtkarte + Marktleiter als Tisch-Hologramme,
@@ -382,33 +441,25 @@ export default function VersionSelect() {
           <h1 className="vs-h1 vi-ttitle">Zwei Prüfungen. Eine Empfehlung.</h1>
         </section>
 
+        {/* Kapitelende: dasselbe Paar wie in allen Kapiteln */}
         <section className={'vs-panel' + (view.step === VS_LAST ? ' on' : '')}>
           <p className="vs-kicker vs-rise">Wie geht es weiter?</p>
           <div className="vs-pills" onClick={e => e.stopPropagation()}>
-            <Link href="/presentation" className="vs-pill vs-rise d1">
-              <span>Version 1 — Präsentation</span>
-              <span className="vs-ico" aria-hidden="true">
-                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor"
-                  strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M3.2 8h9.4M8.9 4.3 12.6 8l-3.7 3.7" />
-                </svg>
-              </span>
-            </Link>
-            <Link href="/strategie" className="vs-pill vs-rise d2">
-              <span>Kapitel 3 — Strategie</span>
-              <span className="vs-ico" aria-hidden="true">
-                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor"
-                  strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M3.2 8h9.4M8.9 4.3 12.6 8l-3.7 3.7" />
-                </svg>
-              </span>
-            </Link>
-            <button type="button" className="vs-pill vs-rise d3" onClick={replay}>
-              <span>Version 2 — Kurzfassung erneut</span>
+            <button type="button" className="vs-pill vs-rise d1" onClick={again}>
+              <span>Nochmal</span>
               <span className="vs-ico" aria-hidden="true">
                 <svg viewBox="0 0 16 16" fill="none" stroke="currentColor"
                   strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M13 8a5 5 0 1 1-1.6-3.7" /><path d="M13 2.6V5h-2.4" />
+                </svg>
+              </span>
+            </button>
+            <button type="button" className="vs-pill vs-rise d2" onClick={toIndex}>
+              <span>Zurück zur Übersicht</span>
+              <span className="vs-ico" aria-hidden="true">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor"
+                  strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12.8 8H3.4M7.1 4.3 3.4 8l3.7 3.7" />
                 </svg>
               </span>
             </button>

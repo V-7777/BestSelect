@@ -8,7 +8,7 @@
    Spielraum (Brutto → Abzüge → Netto → Fixkosten → freier Betrag), und als
    Schlussbild baut sich das Strategie-Dashboard auf — Absicherung,
    Vermögensaufbau und die Altersvorsorge als Cashflow-Verlauf (Ansparphase
-   → Renteneintritt → Rentenphase); es bleibt bis zur Kapitelwahl stehen.
+   → Renteneintritt → Rentenphase); es bleibt bis zum Kapitelende stehen.
    Damit die Overlays pixelgenau auf dem Fernseher sitzen,
    ist die Bühne wie in der Präsentation eine feste 1600×900-Fläche — hier
    im Cover-Fit (randlos, Beschnitt statt Letterbox): Bühnen-Koordinaten
@@ -25,7 +25,7 @@ import IconGlyphs from '@/components/best-select/IconGlyphs';
 import './strategie.css';
 
 const BEAT = 632;
-const ST_LAST = 5;   /* 0 Intro · 1 Information · 2 Analyse · 3 Cashflow · 4 Strategie · 5 Kapitelwahl */
+const ST_LAST = 5;   /* 0 Intro · 1 Information · 2 Analyse · 3 Cashflow · 4 Strategie · 5 Kapitelende */
 
 /* Der Fernseher im Foto (leuchtendes Panel, Bezel-sicher eingerückt):
    gemessen 936→1634 / 366→740 px im 2560×1440-Original, ×0.625 auf die
@@ -73,6 +73,37 @@ const SAVE_H = [10, 14, 19, 23, 28, 32, 37, 41, 46];
 const DRAW_H = [40, 34, 28, 22, 17];
 const CF_BASE = 104;
 
+/* Finanzstrom (Schritt 3, Screen-Koordinaten 436×233) — EINE fließende
+   Lichtlinie durchläuft alle fünf Stationen der Reihe nach:
+   Brutto → Abzüge → Netto → Fixkosten → Frei verfügbar. Die Linie
+   pendelt dabei im 90°-Winkel zwischen Mitte, rechter Seite (Abzüge)
+   und linker Seite (Fixkosten) — jede Station ist Teil des Flusses,
+   kein Abzweig. Leitungsenden liegen einige Pixel unter den Karten,
+   damit Auto-Höhen nie eine Lücke reißen. */
+const TREE = [
+  { left: 159, top: 24, title: 'Bruttogehalt', amount: '3.000,00 €', gold: false, fd: 0.632 },
+  { left: 159, top: 100, title: 'Netto', amount: '2.067,50 €', gold: false, fd: 3.16 },
+  { left: 159, top: 178, title: 'Frei verfügbar', amount: '817,50 €', gold: true, fd: 5.688 },
+];
+const TREE_SIDE = [
+  {
+    left: 294, top: 54, fd: 1.896, title: 'Abzüge', amount: '−932,50 €',
+    rows: [['Sozialabgaben', '−634,50 €'], ['Steuern', '−298,00 €']],
+  },
+  {
+    left: 6, top: 130, fd: 4.424, title: 'Fixkosten', amount: '−1.250,00 €',
+    rows: [['Miete', '−800,00 €'], ['Lebenshaltung', '−450,00 €']],
+  },
+];
+/* Leitungen in Fluss-Richtung — jedes Segment gehört zur Hauptader
+   und führt den wandernden Lichtimpuls */
+const TREE_WIRES = [
+  { d: 'M218 54 V76 H298', fd: 1.264, pulse: true },   /* Brutto → Abzüge (rechts) */
+  { d: 'M362 92 V118 H273', fd: 2.528, pulse: true },  /* Abzüge → Netto (Mitte) */
+  { d: 'M218 130 V152 H138', fd: 3.792, pulse: true }, /* Netto → Fixkosten (links) */
+  { d: 'M74 168 V196 H163', fd: 5.056, pulse: true },  /* Fixkosten → Frei (Mitte) */
+];
+
 interface StView {
   step: number;
   inst: boolean;   /* Sofort-Render ohne Choreografie */
@@ -86,9 +117,9 @@ function lockFor(n: number, dir: number): number {
   if (dir < 0) return BEAT;
   if (n === 1) return BEAT * 5;    /* 3160: Schirm-Übernahme + fünf Chips */
   if (n === 2) return BEAT * 7;    /* 4424: Bogen, Linien, Nabe, drei Bedarfe */
-  if (n === 3) return BEAT * 12;   /* 7584: Cashflow-Fluss Brutto → frei, Takt für Takt */
+  if (n === 3) return BEAT * 10;   /* 6320: Finanzstrom durchläuft alle fünf Stationen bis zum Gold */
   if (n === 4) return BEAT * 10;   /* 6320: Dashboard-Aufbau + Renten-Crescendo */
-  return BEAT * 2;                 /* Intro / Kapitelwahl: 1264 */
+  return BEAT * 2;                 /* Intro / Kapitelende: 1264 */
 }
 
 /* Evidenz je Schritt für Screenreader — der Schirm ist aria-hidden */
@@ -99,13 +130,13 @@ function stEvidence(step: number): string {
   if (step === 2) return 'Schritt 2 von 4, Analyse: Die Informationen kreisen wie Monde um '
     + 'die Analyse — daraus entstehen drei Bedarfe: Absichern, Aufbauen, Vorsorgen.';
   if (step === 3) return 'Schritt 3 von 4, Cashflow: Vom Bruttogehalt von 3.000 Euro gehen '
-    + 'Steuern und Sozialabgaben ab, es bleiben netto 2.067,50 Euro. Nach Miete und '
-    + 'Lebenshaltung bleibt der freie Betrag: 817,50 Euro — die Basis der Strategie.';
+    + 'Abzüge von 932,50 Euro ab — netto bleiben 2.067,50 Euro. Nach den Fixkosten — Miete '
+    + 'und Lebenshaltung, zusammen 1.250 Euro — bleibt der freie Betrag: 817,50 Euro.';
   if (step === 4) return 'Schritt 4 von 4, Strategie: Drei Bausteine — Absicherung, '
     + 'Vermögensaufbau und Altersvorsorge als Cashflow-Verlauf: Ansparphase bis zum '
     + 'Renteneintritt, danach Rentenphase.';
-  if (step === ST_LAST) return 'Kapitelwahl: Weiter öffnet die Zusammenfassung. '
-    + 'Strategie erneut spielt das Kapitel noch einmal.';
+  if (step === ST_LAST) return 'Kapitelende: Nochmal spielt das Kapitel noch einmal. '
+    + 'Zurück zur Übersicht öffnet die Kapitelwahl.';
   return 'Kapitel 3, Strategie: Aus allen Informationen des Gesprächs entsteht eine '
     + 'individuell entwickelte Finanzstrategie. Klick oder Pfeiltaste führt durch vier Schritte.';
 }
@@ -135,7 +166,7 @@ export default function Strategie() {
     }, reduced() ? 120 : ms);
   }, []);
 
-  /* Neustart des Kapitels (Pille „Strategie erneut"): Ausblenden 1 Takt,
+  /* Neustart des Kapitels (Pille „Nochmal"): Ausblenden 1 Takt,
      Rücksprung, Einblenden 2 Takte — wie in den anderen Kapiteln */
   const replay = useCallback(() => {
     if (busyRef.current) return;
@@ -151,7 +182,8 @@ export default function Strategie() {
   const go = useCallback((n: number) => {
     if (busyRef.current) return;
     if (n > ST_LAST) {
-      /* Chronologie: nach der Strategie folgt die Zusammenfassung */
+      /* Kapitelende: Weiter (Tastatur) führt zurück zur Übersicht, wie die
+         Link-Pille — „Nochmal" läuft nur über die Pille */
       router.push('/');
       return;
     }
@@ -238,7 +270,7 @@ export default function Strategie() {
       id="st-viewport"
       ref={viewportRef}
       onClick={() => {
-        if (viewRef.current.step === ST_LAST) return;   /* Kapitelwahl: nur die Pillen */
+        if (viewRef.current.step === ST_LAST) return;   /* Kapitelende: nur die Pillen */
         go(viewRef.current.step + 1);
       }}
     >
@@ -431,86 +463,75 @@ export default function Strategie() {
             </div>
           </section>
 
-          {/* Schritt 3 — Cashflow: vom Brutto zum freien Betrag als Fluss von
-              oben nach unten (Sankey-Teaser). Der Hauptstrom verjüngt sich mit
-              jeder Station, die Abzüge zweigen als warme Bänder nach rechts ab;
-              was unten ankommt, ist gold — der Spielraum, den die Strategie
-              anschließend verteilt. */}
+          {/* Schritt 3 — Cashflow: eine Lichtader schlängelt sich durch
+              alle fünf Stationen in Fluss-Reihenfolge Brutto → Abzüge →
+              Netto → Fixkosten → Frei verfügbar. Verbinder strikt im
+              90°-Winkel; jedes Segment führt den wandernden Impuls, jede
+              Karte poppt auf, sobald ihre Leitung sie erreicht. */}
           <section className={'st-spanel' + (s === 3 ? ' on' : '')}>
             <p className="st-shead" style={{ '--fd': '.158s' } as CSSProperties}>
               Finanzstrategie — Cashflow
             </p>
-            <svg className="st-sankey" viewBox="0 0 436 233" aria-hidden="true">
-              <defs>
-                <linearGradient id="stFlow" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0" stopColor="rgba(120,185,255,.36)" />
-                  <stop offset="1" stopColor="rgba(95,163,245,.16)" />
-                </linearGradient>
-              </defs>
-              {/* Hauptstrom Brutto → Netto (Breite ∝ Betrag: 84 → 58) */}
-              <path className="st-flowseg f1"
-                d="M108 46 C108 66 121 84 121 102 L179 102 C179 84 192 66 192 46 Z" />
-              {/* Abzweig Steuern & Sozialabgaben */}
-              <path className="st-branch b1"
-                d="M191 48 C238 51 260 56 284 62 L284 88 C256 78 228 66 188 62 Z" />
-              {/* Hauptstrom Netto → frei (58 → 24) */}
-              <path className="st-flowseg f2"
-                d="M121 124 C121 140 138 148 138 162 L162 162 C162 148 179 140 179 124 Z" />
-              {/* Abzweig Miete & Lebenshaltung */}
-              <path className="st-branch b2"
-                d="M179 126 C232 130 258 137 284 143 L284 167 C256 159 224 146 177 140 Z" />
-              {/* Auslauf in den freien Betrag */}
-              <path className="st-flowseg f3" d="M138 162 L138 192 L162 192 L162 162 Z" />
+            <svg className="st-flowmap" viewBox="0 0 436 233" aria-hidden="true">
+              {TREE_WIRES.map((w, i) => (
+                <path key={'w' + i} className="st-wire" d={w.d} pathLength={1}
+                  style={{ '--fd': w.fd + 's' } as CSSProperties} />
+              ))}
+              {TREE_WIRES.filter(w => w.pulse).map((w, i) => (
+                <path key={'p' + i} className="st-pulse" d={w.d} pathLength={1}
+                  style={{ '--fd': w.fd + 's' } as CSSProperties} />
+              ))}
             </svg>
-            <div className="st-fnode brutto">
-              <span className="st-flabel">Bruttogehalt</span>
-              <span className="st-famount">3.000,00 €</span>
-            </div>
-            <div className="st-fnode netto">
-              <span className="st-flabel">Netto</span>
-              <span className="st-famount">2.067,50 €</span>
-            </div>
-            <div className="st-fnode frei">
-              <span className="st-flabel">Frei verfügbar</span>
-              <span className="st-famount">817,50 €</span>
-            </div>
-            <div className="st-fbox b1">
-              <div className="st-frow head"><span>Abzüge</span><span className="neg">−932,50 €</span></div>
-              <div className="st-frow"><span>Lohnsteuer</span><span>−298,00 €</span></div>
-              <div className="st-frow"><span>Sozialabgaben</span><span>−634,50 €</span></div>
-            </div>
-            <div className="st-fbox b2">
-              <div className="st-frow head"><span>Fixkosten</span><span className="neg">−1.250,00 €</span></div>
-              <div className="st-frow"><span>Miete</span><span>−800,00 €</span></div>
-              <div className="st-frow"><span>Lebenshaltung</span><span>−450,00 €</span></div>
-            </div>
+            {TREE.map(c => (
+              <div
+                key={c.title}
+                className={'st-tcard' + (c.gold ? ' gold' : '')}
+                style={{ left: c.left + 'px', top: c.top + 'px', '--fd': c.fd + 's' } as CSSProperties}
+              >
+                <span className="st-ftitle">{c.title}</span>
+                <span className="st-famount">{c.amount}</span>
+              </div>
+            ))}
+            {TREE_SIDE.map(c => (
+              <div
+                key={c.title}
+                className="st-tside"
+                style={{ left: c.left + 'px', top: c.top + 'px', '--fd': c.fd + 's' } as CSSProperties}
+              >
+                <div className="st-trow head"><span>{c.title}</span><span className="neg">{c.amount}</span></div>
+                {c.rows.map(([l, a]) => (
+                  <div className="st-trow" key={l}><span>{l}</span><span>{a}</span></div>
+                ))}
+              </div>
+            ))}
           </section>
         </div>
 
         {/* Tischkante: Titel je Schritt im Lampenlicht, am Ende die Pillen */}
         <main id="st-captions">
-          {/* Keine Tischtexte: das Bild spricht — nur am Ende stehen die
-              beiden Pillen der Kapitelwahl */}
+          {/* Keine Tischtexte: das Bild spricht — nur am Ende steht das
+              Kapitelende-Paar, das alle Kapitel teilen: Nochmal · Zurück
+              zur Übersicht */}
           <section className={'st-panel' + (s === ST_LAST ? ' on' : '')}>
             <div className="st-pills" onClick={e => e.stopPropagation()}>
-              <Link href="/" className="st-pill st-rise d1">
-                <span>Weiter — Zusammenfassung</span>
+              <button type="button" className="st-pill st-rise d1" onClick={replay}>
+                <span>Nochmal</span>
                 <span className="st-ico" aria-hidden="true">
                   <svg viewBox="0 0 16 16" fill="none" stroke="currentColor"
-                    strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M3.2 8h9.4M8.9 4.3 12.6 8l-3.7 3.7" />
-                  </svg>
-                </span>
-              </Link>
-              <button type="button" className="st-pill st-rise d3" onClick={replay}>
-                <span>Strategie erneut</span>
-                <span className="st-ico" aria-hidden="true">
-                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor"
-                    strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M13 8a5 5 0 1 1-1.6-3.7" /><path d="M13 2.6V5h-2.4" />
-                  </svg>
+                  strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M13 8a5 5 0 1 1-1.6-3.7" /><path d="M13 2.6V5h-2.4" />
+                </svg>
                 </span>
               </button>
+              <Link href="/" className="st-pill st-rise d3">
+                <span>Zurück zur Übersicht</span>
+                <span className="st-ico" aria-hidden="true">
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor"
+                  strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12.8 8H3.4M7.1 4.3 3.4 8l3.7 3.7" />
+                </svg>
+                </span>
+              </Link>
             </div>
           </section>
         </main>

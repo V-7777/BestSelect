@@ -98,7 +98,7 @@ export default function BestSelect() {
     }, reduced() ? 120 : ms);
   }, []);
 
-  /* Neustart (Pille „Neustart" am Finale): Ausblenden 1 Takt, Rücksprung,
+  /* Neustart (Pille „Nochmal" am Finale): Ausblenden 1 Takt, Rücksprung,
      Einblenden 2 Takte — exakt 1896 ms Sperre */
   const restart = useCallback(() => {
     if (busyRef.current) return;
@@ -115,9 +115,9 @@ export default function BestSelect() {
   const go = useCallback((n: number) => {
     if (busyRef.current) return;
     if (n > LAST) {
-      /* Chronologie: nach dem Finale folgt das Strategie-Kapitel — Weiter
-         (Tastatur) navigiert dorthin, wie die primäre Pille am Finale */
-      router.push('/strategie');
+      /* Kapitelende: Weiter (Tastatur) führt zurück zur Übersicht, wie die
+         Link-Pille am Finale — „Nochmal" läuft nur über die Pille */
+      router.push('/');
       return;
     }
     const dir: 1 | -1 = n < viewRef.current.step ? -1 : 1;

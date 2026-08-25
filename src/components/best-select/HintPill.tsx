@@ -2,9 +2,9 @@ import Link from 'next/link';
 import type { MouseEvent } from 'react';
 
 /* Hinweis-Pille unten links: Nested CTA — der Pfeil sitzt in eigenem Kreis
-   bündig am inneren Rand. Am Finale wird daraus ein Pillen-Paar: primär
-   führt der Link ins Strategie-Kapitel (die Chronologie), sekundär startet
-   der Knopf die Präsentation neu. Echte Bedienelemente: fokussierbar,
+   bündig am inneren Rand. Am Finale wird daraus das Kapitelende-Paar, das
+   alle Kapitel teilen: „Nochmal" startet die Präsentation neu, „Zurück zur
+   Übersicht" führt zum Index (Kapitelwahl). Echte Bedienelemente: fokussierbar,
    Enter/Leertaste funktionieren, und am Finale sind sie der einzige
    Klickweg (die Bühne ist dort inert). */
 export default function HintPill({ restart, onAdvance, onRestart }: {
@@ -15,22 +15,8 @@ export default function HintPill({ restart, onAdvance, onRestart }: {
   if (restart) {
     return (
       <div className="meta" id="hint">
-        <Link
-          href="/strategie"
-          className="hint-pill"
-          onClick={e => e.stopPropagation()}
-        >
-          {/* Substantivisch: benennt das nächste Kapitel, keine Aufforderung */}
-          <span>Weiter: Strategie</span>
-          <span className="hint-ico" aria-hidden="true">
-            <svg viewBox="0 0 16 16" className="g-next" fill="none" stroke="currentColor"
-              strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3.2 8h9.4M8.9 4.3 12.6 8l-3.7 3.7" />
-            </svg>
-          </span>
-        </Link>
-        <button type="button" className="hint-pill quiet" onClick={onRestart}>
-          <span>Neustart</span>
+        <button type="button" className="hint-pill" onClick={onRestart}>
+          <span>Nochmal</span>
           <span className="hint-ico" aria-hidden="true">
             <svg viewBox="0 0 16 16" className="g-restart" fill="none" stroke="currentColor"
               strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
@@ -38,6 +24,19 @@ export default function HintPill({ restart, onAdvance, onRestart }: {
             </svg>
           </span>
         </button>
+        <Link
+          href="/"
+          className="hint-pill quiet"
+          onClick={e => e.stopPropagation()}
+        >
+          <span>Zurück zur Übersicht</span>
+          <span className="hint-ico" aria-hidden="true">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor"
+              strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12.8 8H3.4M7.1 4.3 3.4 8l3.7 3.7" />
+            </svg>
+          </span>
+        </Link>
       </div>
     );
   }
