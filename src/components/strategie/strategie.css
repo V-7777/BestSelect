@@ -1,0 +1,375 @@
+/* ============================================================
+   STRATEGIE — Kapitel 3 im Boardroom: die Erzählung spielt auf
+   dem Wandschirm. Steuerung: Klick (weiter) · ← zurück ·
+   Leertaste/→ weiter. Am Ende fragen zwei Pillen: Nochmal · Zurück zur Übersicht.
+   Tokens (Farben, Holo-Töne, Kurven) liegen in src/app/globals.css.
+   ============================================================ */
+
+html,body{height:100%;overflow:hidden}
+body{background:var(--ink-deep);color:var(--cream);cursor:pointer;
+  /* Selecta führt: das Kapitel läuft komplett in der Hausschrift */
+  font-family:'Selecta',var(--font-inter),Inter,system-ui,-apple-system,sans-serif;
+  -webkit-font-smoothing:antialiased}
+
+/* Die Seite blendet sich beim Mount per tx() ein; der Verlauf ist zugleich
+   der Grund hinter dem Cover-Beschnitt */
+#st-viewport{position:fixed;inset:0;overflow:hidden;opacity:0;
+  background:radial-gradient(115% 95% at 50% 40%, #0D2239 0%, var(--ink) 48%, var(--ink-deep) 100%)}
+
+/* Feste 1600×900-Bühne im Cover-Fit (useStageFit): Bühnen-Koordinaten sind
+   1:1 Foto-Koordinaten (Foto 2560×1440 ≙ ×0.625). Der Verlauf unter dem
+   Bild ist der Nothalt bei fehlendem Asset. */
+#st-stage{position:absolute;left:50%;top:50%;width:1600px;height:900px;
+  transform:translate(-50%,-50%);transform-origin:50% 50%;overflow:hidden;
+  background:url('/strategie.png') center/cover no-repeat,
+    radial-gradient(115% 95% at 50% 40%, #0D2239 0%, var(--ink) 48%, var(--ink-deep) 100%)}
+/* Lese-Scrim über Tisch und Vordergrund — Schirm und Fensterfront bleiben frei */
+#st-stage::after{content:'';position:absolute;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(72% 46% at 50% 88%,
+    rgba(5,14,25,.62) 0%, rgba(5,14,25,.34) 55%, rgba(5,14,25,0) 100%)}
+
+/* Sofort-Render (Zurück-Navigation / Deep-Link): keine Übergänge */
+#st-stage.noanim *,#st-stage.noanim *::before,#st-stage.noanim *::after{
+  transition:none !important;animation:none !important}
+
+/* ============================================================
+   Der Wandschirm — gemessenes Panel: 936→1634 / 366→740 px im
+   2560er-Original, ×0.625 ⇒ 585/229, 436×233 Bühnen-Pixel.
+   Ab Schritt 1 übernimmt die Fläche den Fernseher: deckend, damit
+   das eingebackene Dashboard des Fotos vollständig verschwindet.
+   ============================================================ */
+#st-screen{position:absolute;left:585px;top:229px;width:436px;height:233px;
+  z-index:1;display:grid;border-radius:5px;overflow:hidden;
+  opacity:0;transition:opacity 1.264s var(--ease);
+  background:linear-gradient(180deg,#0C1729 0%,#101E33 58%,#0B1626 100%);
+  box-shadow:inset 0 1px 0 rgba(158,209,255,.14),
+             inset 0 0 0 1px rgba(120,180,245,.16),
+             inset 0 0 44px rgba(35,120,231,.10)}
+#st-screen.live{opacity:1}
+/* Textur eines echten Panels: feine Scanlinien + Vignette */
+#st-screen::after{content:'';position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(0deg,rgba(158,209,255,.035) 0 1px,rgba(158,209,255,0) 1px 4px),
+    radial-gradient(120% 100% at 50% 42%,
+    rgba(5,14,25,0) 0%,rgba(5,14,25,.05) 62%,rgba(5,14,25,.4) 100%)}
+
+/* Schirm-Panels liegen übereinander; visibility nimmt inaktive Panels aus
+   der Malfolge */
+.st-spanel{grid-area:1/1;position:relative;visibility:hidden;opacity:0;
+  transition:opacity .632s var(--ease),visibility 0s .632s}
+.st-spanel.on{visibility:visible;opacity:1;
+  transition:opacity 1.264s var(--ease),visibility 0s}
+/* Am letzten Schritt bleibt das Dashboard gedimmt im Raum stehen */
+.st-spanel.dim{opacity:.55}
+
+/* Kopfzeile des Schirms: benennt die Phase */
+.st-shead{position:absolute;left:14px;top:10px;margin:0;
+  font-size:8.5px;font-weight:500;letter-spacing:.22em;text-transform:uppercase;
+  color:#9CC6FA;opacity:0;transform:translateY(6px);
+  transition:opacity .632s var(--glide) var(--fd,0s),
+             transform .632s var(--spring) var(--fd,0s)}
+.st-spanel.on .st-shead{opacity:1;transform:none}
+
+/* ---------- Schritt 1: fünf Informations-Chips steigen auf ---------- */
+.st-chips{position:absolute;inset:30px 14px 22px;display:flex;
+  justify-content:center;align-items:center;gap:16px}
+.st-chip{display:flex;flex-direction:column;align-items:center;gap:7px;width:64px;
+  opacity:0;transform:translateY(46px) scale(.7);
+  transition:transform 1.264s var(--spring) var(--fd,0s),
+             opacity 1.264s var(--glide) var(--fd,0s)}
+.st-spanel.on .st-chip{opacity:1;transform:none}
+/* Glas-Kachel: dasselbe Rezept wie .vi-ico, auf 30px gerechnet */
+.st-tile{flex:none;width:30px;height:30px;display:grid;place-items:center;
+  border-radius:9px;color:var(--holo-hi);
+  background:linear-gradient(180deg,rgba(26,62,100,.93),rgba(10,30,51,.95));
+  box-shadow:inset 0 1px 0 rgba(215,226,255,.24),0 0 0 1px rgba(215,226,255,.15),
+             0 3px 11px rgba(3,9,17,.55)}
+.st-tile svg{width:17px;height:17px;display:block}
+.st-tile.sm{width:15px;height:15px;border-radius:5px}
+.st-tile.sm svg{width:10px;height:10px}
+.st-clabel{font-size:7.5px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;
+  color:rgba(230,244,255,.85);white-space:nowrap}
+
+/* ---------- Schritt 2: Planet + Monde (Gravitationsfeld der Analyse) ---------- */
+/* Die Bahnen zeichnen sich zuerst — drei Ellipsen um den Planeten */
+.st-orbits{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.st-ring{fill:none;stroke:rgba(158,209,255,.26);stroke-width:1;
+  stroke-dasharray:1;stroke-dashoffset:1;
+  transition:stroke-dashoffset 1.264s var(--glide) var(--fd,0s)}
+.st-spanel.on .st-ring{stroke-dashoffset:0}
+/* Der Planet: die Analyse selbst — eine Lichtkugel, die ruhig atmet */
+.st-planet{position:absolute;left:218px;top:97px;width:38px;height:38px;border-radius:50%;
+  opacity:0;transform:translate(-50%,-50%) scale(.3);
+  background:radial-gradient(circle at 36% 30%,rgba(158,209,255,.95),rgba(95,163,245,.65) 45%,rgba(16,50,95,.98) 78%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.32),0 0 0 1px rgba(200,230,255,.4),
+             0 0 0 3px rgba(95,163,245,.16),0 0 30px -2px rgba(95,163,245,.9);
+  transition:transform .632s var(--spring) .316s,opacity .632s var(--glide) .316s}
+.st-spanel.on .st-planet{opacity:1;transform:translate(-50%,-50%) scale(1);
+  animation:stPlanet 2.528s var(--breathe) infinite}
+@keyframes stPlanet{
+  0%,100%{box-shadow:inset 0 1px 0 rgba(255,255,255,.32),0 0 0 1px rgba(200,230,255,.4),
+                     0 0 0 3px rgba(95,163,245,.16),0 0 30px -2px rgba(95,163,245,.9)}
+  50%{box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 0 0 1px rgba(220,240,255,.55),
+                 0 0 0 4px rgba(95,163,245,.24),0 0 44px -2px rgba(120,185,255,1)}}
+/* Monde: die Informations-Chips auf der Karussell-Bahn. Der äußere Läufer
+   (.st-moon) steht per offset-path auf seinem Platz (offset-rotate:0 hält
+   alles aufrecht — man blickt immer frontal auf die Karte). Das Karussell
+   bewegt sich NUR auf Klick: --spin (je Klick +20 %, von der Sektion
+   geerbt) addiert sich auf die Basis-Phase --od, der Übergang fährt die
+   Drehung in 2 Takten; offset-distance wickelt auf der geschlossenen
+   Bahn über 100 % hinaus weiter. Sonst steht das Bild. */
+.st-moon{position:absolute;left:0;top:0;width:0;height:0;
+  offset-path:var(--orb);offset-rotate:0deg;
+  offset-distance:calc(var(--od,0%) + var(--spin,0%));
+  opacity:0;transform:scale(.3);
+  transition:transform .632s var(--spring) var(--fd,0s),
+             opacity .632s var(--glide) var(--fd,0s),
+             offset-distance 1.264s var(--glide)}
+.st-spanel.on .st-moon{opacity:1;transform:scale(1)}
+/* Karussell-Tiefe je Platz (--s/--o setzt die Komponente): vorn groß und
+   voll da, hinten klein und leise — die Karte vorn liest man */
+.st-moonbody{position:absolute;left:0;top:0;display:flex;flex-direction:column;
+  align-items:center;gap:6px;
+  opacity:var(--o,1);
+  transform:translate(-50%,-50%) scale(var(--s,1));
+  transition:transform 1.264s var(--glide),opacity 1.264s var(--glide)}
+.st-moontile{flex:none;width:26px;height:26px;display:grid;place-items:center;
+  border-radius:8px;color:var(--holo-hi);
+  background:linear-gradient(180deg,rgba(26,62,100,.93),rgba(10,30,51,.95));
+  box-shadow:inset 0 1px 0 rgba(215,226,255,.24),0 0 0 1px rgba(215,226,255,.15),
+             0 3px 11px rgba(3,9,17,.55)}
+.st-moontile svg{width:15px;height:15px;display:block}
+.st-moonlabel{font-size:7px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;
+  color:rgba(230,244,255,.9);white-space:nowrap;
+  text-shadow:0 1px 6px rgba(3,9,17,.7)}
+/* Ohne offset-path (alte Browser): die Monde stehen still auf ihrer Bahn;
+   der Klick hebt dann nur die jeweils vordere Karte hervor */
+@supports not (offset-path: ellipse(10px 5px at 0 0)){
+  .st-moon{left:var(--fx,218px);top:var(--fy,97px)}
+}
+/* Drei Bedarfe treten unter der Nabe aus */
+.st-needs{position:absolute;left:0;right:0;bottom:16px;display:flex;
+  justify-content:center;gap:10px}
+.st-need{padding:5px 12px;border-radius:999px;
+  font-size:7.5px;font-weight:500;letter-spacing:.18em;text-transform:uppercase;
+  color:rgba(230,244,255,.92);
+  background:linear-gradient(180deg,rgba(158,209,255,.14),rgba(95,163,245,.05));
+  box-shadow:inset 0 1px 0 rgba(158,209,255,.22),0 0 0 1px var(--holo-line);
+  opacity:0;transform:translateY(10px);
+  transition:transform 1.264s var(--spring) var(--fd,0s),
+             opacity 1.264s var(--glide) var(--fd,0s)}
+.st-spanel.on .st-need{opacity:1;transform:none}
+
+/* ---------- Schritt 3: das Strategie-Dashboard ---------- */
+.st-grid{position:absolute;inset:30px 12px 12px;display:grid;
+  grid-template-columns:1fr 150px;grid-template-rows:1fr 1fr;gap:8px}
+/* Panels wachsen von unten aus ihrer Kante (clip-path), wie die Hologramme
+   der Kurzfassung */
+.st-card{position:relative;margin:0;padding:9px 10px;border-radius:6px;
+  background:linear-gradient(180deg,rgba(158,209,255,.10),rgba(95,163,245,.04));
+  box-shadow:inset 0 1px 0 rgba(158,209,255,.18),0 0 0 1px rgba(120,180,245,.22);
+  opacity:0;transform:translateY(14px);clip-path:inset(100% 0 0 0);
+  transition:opacity 1.264s var(--glide) var(--fd,0s),
+             transform 1.264s var(--spring) var(--fd,0s),
+             clip-path 1.264s var(--glide) var(--fd,0s)}
+.st-spanel.on .st-card{opacity:1;transform:none;clip-path:inset(0 0 0 0)}
+.st-card.cf{grid-row:1/3}
+.st-ctitle{display:flex;align-items:center;gap:6px;
+  font-size:8.5px;font-weight:500;letter-spacing:.16em;text-transform:uppercase;
+  color:rgba(230,244,255,.92)}
+
+/* Absicherung: Deckungsbalken */
+.st-covers{display:flex;flex-direction:column;gap:9px;margin-top:12px}
+.st-cover{display:flex;flex-direction:column;gap:3px}
+.st-covlabel{font-size:7px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted)}
+.st-track{display:block;height:5px;border-radius:3px;overflow:hidden;
+  background:rgba(158,209,255,.10);
+  box-shadow:inset 0 0 0 1px rgba(158,209,255,.08)}
+.st-fill{display:block;height:100%;border-radius:inherit;
+  background:linear-gradient(90deg,rgba(95,163,245,.65),#9ED1FF);
+  transform:scaleX(0);transform-origin:0 50%;
+  transition:transform 1.264s var(--glide) var(--fd,0s)}
+.st-spanel.on .st-fill{transform:scaleX(var(--w,1))}
+
+/* Vermögensaufbau: Sparlinie */
+.st-spark{display:block;width:100%;height:auto;margin-top:10px}
+.st-sparkline{stroke:var(--holo-hi);stroke-width:1.6;fill:none;
+  stroke-linecap:round;stroke-linejoin:round;
+  stroke-dasharray:1;stroke-dashoffset:1;
+  transition:stroke-dashoffset 1.264s var(--glide) 1.580s}
+.st-spanel.on .st-sparkline{stroke-dashoffset:0}
+
+/* ---------- Cashflow der Altersvorsorge ----------
+   Neun azurne Anspar-Balken wachsen, die Kapitalkurve zeichnet sich, am
+   Renteneintritt schlägt der Verlauf um: fünf goldene Entnahme-Balken —
+   dieselbe warme Familie wie der Gewinner-Tarif. Alle Verzögerungen als
+   --fd auf dem 632-Raster (2.528 → 5.688 s). */
+.st-cashflow{display:block;width:100%;height:auto;margin-top:8px}
+.st-axis{stroke:rgba(158,209,255,.38);stroke-width:1;
+  transform:scaleX(0);transform-box:fill-box;transform-origin:0 50%;
+  transition:transform .632s var(--glide) 2.528s}
+.st-spanel.on .st-axis{transform:scaleX(1)}
+/* Sparlinien-Achse hat keinen eigenen Takt: sie erscheint mit dem Panel */
+.st-spark .st-axis{transition-delay:1.264s}
+.st-bar{transform:scaleY(0);transform-box:fill-box;transform-origin:50% 100%;
+  transition:transform .632s var(--spring) var(--fd,0s)}
+.st-spanel.on .st-bar{transform:scaleY(1)}
+.st-bar.save{fill:rgba(120,185,255,.78)}
+.st-bar.draw{fill:rgba(245,200,102,.88)}
+.st-curve{stroke:#CDE7FF;stroke-width:1.5;fill:none;
+  stroke-linecap:round;
+  stroke-dasharray:1;stroke-dashoffset:1;
+  transition:stroke-dashoffset 1.896s var(--glide) 3.792s}
+.st-spanel.on .st-curve{stroke-dashoffset:0}
+/* Renteneintritt: gestrichelte Senkrechte wischt von oben herab … */
+.st-mark{stroke:rgba(247,239,233,.5);stroke-width:1;stroke-dasharray:3 3;
+  transform:scaleY(0);transform-box:fill-box;transform-origin:50% 0;
+  transition:transform .632s var(--glide) 4.424s}
+.st-spanel.on .st-mark{transform:scaleY(1)}
+/* … und ein goldener Ping quittiert den Umschlagpunkt */
+.st-ping{fill:none;stroke:rgba(245,200,102,.9);stroke-width:1.2;opacity:0;
+  transform-box:fill-box;transform-origin:center}
+.st-spanel.on .st-ping{animation:stPing .632s var(--spring) 4.424s both}
+@keyframes stPing{
+  0%{opacity:.9;transform:scale(.35)}
+  100%{opacity:0;transform:scale(1.5)}}
+.st-cftext{font-family:'Selecta',var(--font-inter),Inter,system-ui,sans-serif;
+  font-size:7px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;
+  fill:rgba(245,250,255,.6);text-anchor:middle;
+  opacity:0;transition:opacity .632s var(--glide) 5.688s}
+.st-spanel.on .st-cftext{opacity:1}
+.st-cftext.mark{font-size:6.5px;fill:rgba(247,239,233,.82);transition-delay:4.740s}
+.st-cftext.warm{fill:rgba(245,200,102,.85)}
+
+/* ---------- Schritt 3: Cashflow — Finanzstrom (90°-Leitungen) ----------
+   Dünne Lichtleitungen statt Flächen: obere Schiene, 90°-Bogen rechts
+   außen, untere Schiene. Jede Leitung zeichnet sich in Fluss-Richtung,
+   ein heller Impuls wandert danach dauerhaft die Strecke ab; die Karten
+   poppen auf, sobald ihre Station erreicht ist (0.632 → 5.688 s). */
+.st-flowmap{position:absolute;inset:0;width:100%;height:100%}
+.st-wire{fill:none;stroke:rgba(95,163,245,.4);stroke-width:1.5;stroke-linecap:round;
+  stroke-dasharray:1;stroke-dashoffset:1;
+  transition:stroke-dashoffset .632s var(--glide) var(--fd,0s)}
+.st-spanel.on .st-wire{stroke-dashoffset:0}
+/* Lichtimpuls: ein kurzes helles Segment läuft die Leitung in
+   Fluss-Richtung ab — sichtbar, sobald die Leitung gezeichnet ist */
+.st-pulse{fill:none;stroke:var(--holo-hi);stroke-width:2;stroke-linecap:round;
+  stroke-dasharray:.14 .86;stroke-dashoffset:.14;opacity:0;
+  filter:drop-shadow(0 0 4px rgba(120,185,255,.9));
+  transition:opacity .632s var(--glide) calc(var(--fd,0s) + .632s);
+  animation:stFlowPulse 2.528s linear infinite}
+.st-spanel.on .st-pulse{opacity:.9}
+@keyframes stFlowPulse{from{stroke-dashoffset:.14}to{stroke-dashoffset:-.86}}
+/* Karten des Kontenbaums: Hauptspalte (Titel + Betrag, zentriert) —
+   poppen federnd auf, sobald ihre Leitung sie erreicht */
+.st-tcard{position:absolute;width:118px;padding:6px 8px;border-radius:7px;
+  display:flex;flex-direction:column;gap:1px;text-align:center;
+  background:linear-gradient(180deg,rgba(158,209,255,.12),rgba(95,163,245,.04));
+  box-shadow:inset 0 1px 0 rgba(158,209,255,.2),0 0 0 1px rgba(120,180,245,.28);
+  opacity:0;transform:translateY(8px) scale(.85);
+  transition:transform .632s var(--spring) var(--fd,0s),
+             opacity .632s var(--glide) var(--fd,0s)}
+.st-spanel.on .st-tcard{opacity:1;transform:none}
+/* Der freie Betrag: goldene Fassung — das Ergebnis des Stroms */
+.st-tcard.gold{box-shadow:inset 0 1px 0 rgba(255,250,243,.24),
+  0 0 0 1px rgba(245,200,102,.45),0 0 18px -2px rgba(245,200,102,.5)}
+.st-tcard.gold .st-famount{color:#F5C866;text-shadow:0 0 10px rgba(245,200,102,.5)}
+.st-ftitle{font-size:7.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+  color:rgba(230,244,255,.92)}
+.st-famount{font-size:13px;font-weight:700;color:#fff;letter-spacing:.01em;
+  font-variant-numeric:tabular-nums}
+/* Andock-Karten der Abzweige: Titelzeile + kleine Aufstellung */
+.st-tside{position:absolute;width:136px;padding:5px 9px;border-radius:7px;
+  display:flex;flex-direction:column;gap:2px;
+  background:linear-gradient(180deg,rgba(158,209,255,.10),rgba(95,163,245,.035));
+  box-shadow:inset 0 1px 0 rgba(158,209,255,.16),0 0 0 1px rgba(120,180,245,.22);
+  opacity:0;transform:translateX(10px) scale(.95);
+  transition:transform .632s var(--spring) var(--fd,0s),
+             opacity .632s var(--glide) var(--fd,0s)}
+.st-spanel.on .st-tside{opacity:1;transform:none}
+.st-trow{display:flex;justify-content:space-between;gap:8px;white-space:nowrap;
+  font-size:6.5px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--muted);font-variant-numeric:tabular-nums}
+.st-trow.head{font-size:7px;font-weight:700;color:rgba(230,244,255,.92);
+  padding-bottom:2px;box-shadow:inset 0 -1px 0 rgba(158,209,255,.14)}
+.st-trow .neg{color:#F49B7A}
+
+/* ============================================================
+   Tischkante: Titel im Lampenlicht, am Ende die Pillen
+   ============================================================ */
+#st-captions{position:absolute;left:50%;top:636px;width:980px;
+  transform:translateX(-50%);display:grid;place-items:start center;
+  text-align:center;z-index:2}
+.st-panel{grid-area:1/1;visibility:hidden;opacity:0;width:860px;
+  transition:opacity .632s var(--ease),visibility 0s .632s}
+.st-panel.on{visibility:visible;opacity:1;
+  transition:opacity 1.264s var(--ease),visibility 0s}
+
+.st-rise{opacity:0;transform:translateY(14px);
+  transition:opacity .632s var(--spring),transform .632s var(--spring)}
+.st-panel.on .st-rise{opacity:1;transform:none}
+.st-panel.on .d1{transition-delay:.316s}
+.st-panel.on .d2{transition-delay:.474s}
+.st-panel.on .d3{transition-delay:.632s}
+
+/* ---------- Kapitelende: zwei Pillen (Rezept aus .vs-pill) ---------- */
+.st-pills{display:flex;flex-wrap:wrap;justify-content:center;gap:16px}
+.st-pill{display:inline-flex;align-items:center;gap:14px;
+  padding:8px 8px 8px 24px;border-radius:999px;color:rgba(245,250,255,.86);
+  font-size:12px;font-weight:500;letter-spacing:.16em;text-transform:uppercase;
+  font-family:inherit;cursor:pointer;text-decoration:none;
+  background:linear-gradient(180deg,rgba(245,250,255,.11),rgba(245,250,255,.035));
+  box-shadow:inset 0 1px 0 rgba(245,250,255,.15),0 0 0 1px rgba(215,226,255,.13),
+             0 10px 28px rgba(9,25,44,.45);
+  transition:transform .632s var(--glide),box-shadow .632s var(--glide),
+             opacity .632s var(--glide)}
+/* Während der Choreografie nehmen sich die Pillen zurück */
+#st-stage.busy .st-pill{opacity:.6}
+.st-pill:focus-visible{outline:none;
+  box-shadow:inset 0 1px 0 rgba(245,250,255,.15),0 0 0 1px rgba(215,226,255,.13),
+             0 0 0 3px rgba(95,163,245,.5),0 10px 28px rgba(9,25,44,.45)}
+.st-pill:active{transform:scale(.978);
+  box-shadow:inset 0 1px 0 rgba(245,250,255,.15),0 0 0 1px rgba(215,226,255,.18),
+             0 4px 14px rgba(9,25,44,.45)}
+.st-ico{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;
+  background:rgba(245,250,255,.10);
+  box-shadow:inset 0 1px 0 rgba(245,250,255,.2),0 0 0 1px rgba(215,226,255,.08);
+  transition:transform .632s var(--glide),background .632s var(--glide)}
+.st-ico svg{width:14px;height:14px;display:block}
+.st-pill:hover .st-ico{background:rgba(245,250,255,.17)}
+
+/* ---------- Fußzeile: Fortschritt des Kapitels ---------- */
+.st-meta{position:absolute;right:96px;bottom:22px;z-index:3;opacity:0;
+  font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);
+  font-variant-numeric:tabular-nums;padding:9px 16px;border-radius:999px;
+  background:linear-gradient(180deg,rgba(245,250,255,.07),rgba(245,250,255,.025));
+  box-shadow:inset 0 1px 0 rgba(245,250,255,.10),0 0 0 1px rgba(215,226,255,.09);
+  transition:opacity .632s var(--glide)}
+.st-meta.show{opacity:1}
+
+/* ?debug=1: zeichnet das gemessene Fernseher-Panel nach */
+#st-tv-debug{position:absolute;left:585px;top:229px;width:436px;height:233px;
+  z-index:4;pointer-events:none;outline:2px dashed rgba(255,80,80,.9)}
+
+/* Nur für Screenreader */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
+  clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+@media (forced-colors: active){
+  #st-screen{outline:1px solid CanvasText}
+  .st-tile,.st-moontile,.st-planet{outline:1px solid CanvasText}
+  .st-card{outline:1px solid CanvasText}
+  .st-need,.st-pill,.st-meta{outline:1px solid CanvasText}
+  .st-wire,.st-pulse{stroke:CanvasText}
+  .st-tcard,.st-tside{outline:1px solid CanvasText}
+  .st-bar.draw{fill:Highlight;forced-color-adjust:none}
+  .st-fill{background:Highlight;forced-color-adjust:none}
+  .st-tcard.gold .st-famount{color:Highlight;forced-color-adjust:none}
+}
+
+@media (prefers-reduced-motion: reduce){
+  #st-viewport *,#st-viewport *::before,#st-viewport *::after{
+    transition-duration:.01ms !important;transition-delay:0ms !important;
+    animation-duration:.01ms !important;animation-delay:0ms !important;
+    animation-iteration-count:1 !important}
+}

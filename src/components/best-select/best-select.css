@@ -4,22 +4,8 @@
    Letzter Klick startet neu.
    ============================================================ */
 
-:root{
-  --ink:#09192C; --ink-deep:#050E19;
-  --blue:#2378E7; --lift:#5FA3F5; --cream:#F7EFE9;
-  --muted:rgba(245,250,255,.68); --hair:rgba(215,226,255,.14);
-  --glass-hi:rgba(245,250,255,.16); --glass-lo:rgba(245,250,255,.07);
-  --halo:rgba(215,226,255,.35);
-  /* Bewegungskurven: keine linearen/ease-in-out-Übergänge.
-     --ease   dramatischer Ein-/Auslauf (Erzählmomente)
-     --glide  ruhiges Gleiten mit Masse (Zustandswechsel)
-     --spring federnder Auftritt ohne Nachwippen (Auftauchen)
-     --breathe sinusnahes Atmen (Dauerpuls der Nabe) */
-  --ease:cubic-bezier(.76,0,.1,1);
-  --glide:cubic-bezier(.32,.72,0,1);
-  --spring:cubic-bezier(.22,1,.36,1);
-  --breathe:cubic-bezier(.4,0,.6,1);
-}
+/* Tokens (Farben + Bewegungskurven) liegen in src/app/globals.css —
+   Quelle der Wahrheit für alle Kapitel. */
 html,body{height:100%;overflow:hidden}
 body{background:var(--ink-deep);color:var(--cream);cursor:pointer;
   font-family:var(--font-inter),Inter,system-ui,-apple-system,sans-serif;
@@ -37,9 +23,9 @@ body{background:var(--ink-deep);color:var(--cream);cursor:pointer;
 #stage::after{content:'';position:absolute;inset:0;z-index:0;pointer-events:none;
   background:radial-gradient(120% 100% at 50% 42%,rgba(5,14,25,0) 0%,rgba(5,14,25,.05) 60%,rgba(5,14,25,.4) 100%)}
 /* Dritte, schaltbare Scrim: das helle Kartenzentrum liegt unter den
-   Ergebnissen von Schritt 12 (Karten in Fenstermitte) und dem Finale —
-   nur dort (.lowlit) dunkelt die untere Mitte ab. Statischer Verlauf,
-   nur Deckkraft bewegt sich (Compositor). */
+   Ergebnis-Kreisen der Prüfungen (Schritte 11–12) — nur dort (.lowlit)
+   dunkelt die untere Mitte ab. Statischer Verlauf, nur Deckkraft bewegt
+   sich (Compositor). */
 #scrim-low{position:absolute;inset:0;z-index:0;pointer-events:none;opacity:0;
   transition:opacity 1.264s var(--glide);
   background:radial-gradient(62% 48% at 50% 62%,
@@ -63,42 +49,23 @@ body{background:var(--ink-deep);color:var(--cream);cursor:pointer;
 #stage.noanim *,#stage.noanim *::before,#stage.noanim *::after{
   transition:none !important;animation:none !important}
 
-/* ---------- Textschiene oben links, über der Zähler-Karte ---------- */
-.rail{position:absolute;left:96px;top:56px;width:420px;text-align:left;z-index:3;
-  will-change:transform,opacity,filter}
-/* Eyebrow: winzige Glas-Pille statt Fließtext — trägt den Schritt-Marker
-   und ersetzt die frühere 1px-Linie (eine Auszeichnung genügt) */
-.kicker{display:inline-flex;align-items:center;gap:9px;
-  padding:5px 12px 5px 10px;border-radius:999px;
-  font-size:10px;font-weight:500;letter-spacing:.2em;text-transform:uppercase;
-  color:var(--lift);white-space:nowrap;
-  background:linear-gradient(180deg,rgba(95,163,245,.15),rgba(95,163,245,.05));
-  box-shadow:inset 0 1px 0 rgba(245,250,255,.13),0 0 0 1px rgba(95,163,245,.17)}
-.kicker::before{content:'';width:4px;height:4px;border-radius:50%;background:var(--blue);
-  box-shadow:0 0 9px rgba(35,120,231,.95);flex:none}
-.kicker:empty{display:none}
+/* ---------- Textschiene oben links, über der Zähler-Karte ----------
+   Steht die ganze Vorführung still: Titel + Unterzeile, kein Kicker. */
+.rail{position:absolute;left:96px;top:56px;width:420px;text-align:left;z-index:3}
 /* Selecta (Maxitype) ist eine Lizenzschrift und liegt nicht bei — steht
    zuerst im Stack, damit sie greift, sobald sie auf dem Präsentationsrechner
    installiert ist. Der gestaltete Fallback ist Schibsted Grotesk: dieselbe
    Gattung (charaktervolle Grotesk), beim Build selbst gehostet. */
 .rail h1{font-family:'Selecta',var(--font-display),'Schibsted Grotesk',Inter,system-ui,sans-serif;
   font-weight:600;font-size:39px;line-height:1.1;
-  letter-spacing:-.022em;margin:16px 0 12px;text-wrap:balance}
-/* „… im Blick"-Lockup (Schritte 1–7): zwei feste Zeilen — nur die erste
-   (das wechselnde Wort) wird animiert, „im Blick" steht buchstäblich still */
-.h-lead{display:block;will-change:transform,opacity,filter}
-.h-tail{display:block}
-/* pre-line: Schrittdaten dürfen Zeilenbrüche vorgeben (Schritt 13 bricht
-   dreizeilig, damit die Unterzeile nicht unter die Unternehmens-Karte läuft) */
+  letter-spacing:-.022em;margin:0 0 12px;text-wrap:balance}
 .sub{font-size:15.5px;line-height:1.55;color:var(--muted);white-space:pre-line}
-/* Fußnoten sind leise, aber lesbar: unter .64 Alpha fällt 12px-Text auf der
-   Nachtkarte unter AA-Kontrast */
-.rail .note{font-size:12px;line-height:1.5;letter-spacing:.02em;color:rgba(245,250,255,.64);margin-top:14px}
 
 /* ---------- Fußzeile: Hinweis-Pille + Fortschritt ---------- */
 .meta{position:absolute;bottom:22px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;
   color:var(--muted);z-index:3}
-#hint{left:96px}
+/* Am Finale stehen zwei Pillen nebeneinander: Nochmal + Zurück zur Übersicht */
+#hint{left:96px;display:flex;align-items:center;gap:10px}
 #count{right:96px;font-variant-numeric:tabular-nums;
   padding:9px 16px;border-radius:999px;
   background:linear-gradient(180deg,rgba(245,250,255,.07),rgba(245,250,255,.025));
@@ -112,6 +79,7 @@ body{background:var(--ink-deep);color:var(--cream);cursor:pointer;
 .hint-pill{display:inline-flex;align-items:center;gap:13px;
   padding:5px 5px 5px 18px;border-radius:999px;color:rgba(245,250,255,.82);
   font:inherit;letter-spacing:inherit;text-transform:inherit;cursor:pointer;
+  text-decoration:none;
   background:linear-gradient(180deg,rgba(245,250,255,.11),rgba(245,250,255,.035));
   box-shadow:inset 0 1px 0 rgba(245,250,255,.15),0 0 0 1px rgba(215,226,255,.13),
              0 10px 28px rgba(9,25,44,.45);
@@ -129,8 +97,13 @@ body{background:var(--ink-deep);color:var(--cream);cursor:pointer;
   box-shadow:inset 0 1px 0 rgba(245,250,255,.2),0 0 0 1px rgba(215,226,255,.08);
   transition:transform .632s var(--glide),background .632s var(--glide)}
 .hint-ico svg{width:13px;height:13px;display:block}
-.hint-ico .g-restart,.hint-pill.is-restart .g-next{display:none}
-.hint-pill.is-restart .g-restart{display:block}
+/* Sekundäre Pille (Zurück zur Übersicht): gleiche Form, zurückgenommene
+   Fläche — „Nochmal" bleibt der primäre Weg */
+.hint-pill.quiet{color:rgba(245,250,255,.62);
+  background:linear-gradient(180deg,rgba(245,250,255,.055),rgba(245,250,255,.02));
+  box-shadow:inset 0 1px 0 rgba(245,250,255,.09),0 0 0 1px rgba(215,226,255,.09),
+             0 10px 28px rgba(9,25,44,.35)}
+.hint-pill.quiet .hint-ico{background:rgba(245,250,255,.06)}
 /* Der Klick trifft die ganze Bühne — die Pille quittiert ihn, aber nur, wenn
    er auch angenommen wird: nicht während der Sperre, und am Finale nur beim
    direkten Druck auf die Pille (die Bühne ist dort inert) */
@@ -144,7 +117,7 @@ body:active #stage:not(.busy):not(.final) .hint-ico,
 @keyframes nudge{
   0%,72%,100%{transform:translateX(0)}
   84%{transform:translateX(2.5px)}}
-.hint-ico svg{animation:nudge 4.424s var(--breathe) infinite}
+.hint-ico .g-next{animation:nudge 4.424s var(--breathe) infinite}
 
 /* ---------- Zähler-Karte links, unter der Textschiene (Glass Rule aus Design.md) ---------- */
 /* Doppelrand: Aussenschale (Fassung) trägt Glas + Haarlinie, der Kern sitzt
@@ -158,15 +131,21 @@ body:active #stage:not(.busy):not(.final) .hint-ico,
              0 18px 44px rgba(9,25,44,.5),0 2px 8px rgba(9,25,44,.32)}
 /* Die Glasplatte wächst mit ihren Zeilen (--rows setzt CounterCard je Schritt):
    die Marktleiter akkumuliert sichtbar statt als leere Fassung zu warten.
-   Feste Zeilenhöhe (38px) + border-box machen die Höhe exakt rechenbar. */
-#counter .core{padding:7px 18px;border-radius:11px;overflow:hidden;
+   Feste Zeilenhöhe (38px) + border-box machen die Höhe exakt rechenbar.
+   flex + order: die DOM-Reihenfolge bleibt fest (SSR), die gemischte
+   Auftrittsfolge sortiert die Zeilen visuell — Neuzugänge landen stets unten. */
+#counter .core{display:flex;flex-direction:column;
+  padding:7px 18px;border-radius:11px;overflow:hidden;
   height:calc(var(--rows,8) * 38px + 14px);
   transition:height .632s var(--glide);
   background:linear-gradient(180deg,var(--glass-hi),var(--glass-lo));
   box-shadow:inset 0 1px 0 rgba(245,250,255,.17),inset 0 0 0 1px rgba(215,226,255,.05)}
 /* 8 Zeilen statt 3: dichter gesetzt, damit die Karte unter der Textschiene
    Platz für die ganze Marktleiter behält */
-.crow{display:flex;align-items:center;justify-content:space-between;gap:14px;
+/* flex:none — als Flex-Kind darf die Zeile NICHT auf die geklemmte
+   Kernhöhe schrumpfen: sie bleibt 38px, die Fassung wächst mit --rows,
+   und alles hinter der Klemme liegt unsichtbar unter der Kante */
+.crow{display:flex;flex:none;align-items:center;justify-content:space-between;gap:14px;
   height:38px;opacity:0}
 .clabel{display:flex;align-items:center;gap:10px;
   font-size:11px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;
@@ -218,9 +197,7 @@ body:active #stage:not(.busy):not(.final) .hint-ico,
    gespreizt, damit jede Kategorie auch bei 12px-Glyphen und Screenshare-
    Kompression eindeutig bleibt — Gold, Lavendel, Weiß (Marke), Azur (Marke),
    Koralle, Mint, Cyan, Perlblau. Die Legenden-Kacheln (.ci-…) führen
-   dieselben Werte; Glyphe + Beschriftung bleiben der farbunabhängige Kanal.
-   Bewusst unscoped: auch die Aufstellungs-Klone (#lineup .lico) trinken aus
-   den .win-Variablen. */
+   dieselben Werte; Glyphe + Beschriftung bleiben der farbunabhängige Kanal. */
 .bsp{--nfg:#F5C866}
 .vv{--nfg:#C3B2F7}
 .spk{--nfg:var(--cream)}
@@ -245,10 +222,10 @@ body:active #stage:not(.busy):not(.final) .hint-ico,
 .ico svg{width:23px;height:23px;display:block}
 .ico.fonds svg{width:14px;height:14px}
 
-/* Auftrittsreihenfolge = CATS-Reihenfolge: aufsteigend nach Marktgröße. */
-#icons.s1 .bsp,#icons.s2 .vv,#icons.s3 .spk,#icons.s4 .vers,
-#icons.s5 .ibt,#icons.s6 .stb,#icons.s7 .bank{opacity:1;transform:scale(1)}
-#icons.s8 .fonds{opacity:.88;transform:scale(1)}
+/* Auftritt: die je Durchlauf gemischte Reihenfolge (IconsLayer) trägt .on je
+   Symbol, sobald sein Schritt erreicht ist — der Stagger (--in) bleibt. */
+#icons .ico.on{opacity:1;transform:scale(1)}
+#icons .ico.fonds.on{opacity:.88}
 
 /* ---------- Radar-Durchlauf: Sonar-Ping mit Phosphor-Nachglühen ---------- */
 /* Jedes Symbol blitzt kurz und knapp auf, wenn die Kante darüberstreicht
@@ -310,9 +287,11 @@ body:active #stage:not(.busy):not(.final) .hint-ico,
 #icons.done .ico:not(.win){opacity:0;transform:scale(.4)}
 #icons.done .win{opacity:1;transform:scale(var(--ws));color:#fff;
   background:var(--wbg);box-shadow:var(--wsh)}
-/* Trichterphase (ab Schritt 11): die Gewinner verschwinden ohne Übergang —
-   ihre Klone (#lineup) übernehmen im selben Frame auf derselben Position */
-#icons.gone .win{opacity:0;transform:scale(.4);transition:none}
+/* Trichterphase (ab Schritt 11): die Gewinner-Badges schrumpfen weich weg,
+   während auf derselben Position die Lichtkreise (#dots) einblenden —
+   ein 316-ms-Cross-Morph statt eines harten Tauschs */
+#icons.gone .win{opacity:0;transform:scale(.4);
+  transition:transform .316s var(--glide),opacity .316s var(--glide)}
 
 /* ---------- Radar: Strahl + Nabe mit Weitblick-W ----------
    Aufbau: #sweep ist eine rotierende Hülle, in der Strahl und Nachlauf
@@ -390,140 +369,92 @@ body:active #stage:not(.busy):not(.final) .hint-ico,
   filter:drop-shadow(0 2px 6px rgba(3,9,17,.6))}
 
 /* ============================================================
-   Trichterphase (Schritte 11–16) — aus Assets.html weiterentwickelt:
-   ein Symbolstrom steht für den ganzen Markt im Trichter-Test.
+   Trichterphase (Schritte 11–13) — radikal vereinfacht:
+   Lichtkreise statt Karten. Unternehmen fallen hinein, drei treten
+   aus; dieselben drei fliegen erneut, ihre Tarife treten aus,
+   der beste steigt ins Zentrum.
    ============================================================ */
 
-/* Spalten-Spines (nur Portfolio- und Tarif-Schritt) */
-.spine{position:absolute;top:186px;width:1px;height:300px;background:var(--hair);opacity:0;z-index:0}
-
-/* Karten: helles Glas — Doppelrand als Ring in der Schattenliste (wie die
-   Zähler-Karte). Motion fährt Transform/Deckkraft, CSS nur die Zustände. */
-.card{position:absolute;left:50%;top:50%;opacity:0;border-radius:8px;z-index:1;
-  background:linear-gradient(180deg,var(--glass-hi),var(--glass-lo));
-  -webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);
-  box-shadow:0 0 0 1px rgba(197,198,205,.15),0 12px 32px rgba(9,25,44,.45);
-  transition:background .632s ease,box-shadow .632s ease}
-.wn{width:260px;height:72px;margin:-36px 0 0 -130px;padding:0 20px;
-  display:flex;align-items:center;gap:16px}
-.pr{width:260px;height:64px;margin:-32px 0 0 -130px;padding:0 18px;
-  display:flex;align-items:center;justify-content:space-between}
-
-/* Logo-Kachel: derselbe Aufbau wie die Legenden-Kacheln (.cico), nur größer —
-   die Kategoriefarbe (.ci-…) bleibt der Wiedererkennungskanal zur Karte */
-.logo{flex:none;width:44px;height:44px;border-radius:8px;display:grid;place-items:center;
-  background:linear-gradient(180deg,rgba(26,62,100,.9),rgba(10,30,51,.92));
-  box-shadow:inset 0 1px 0 rgba(215,226,255,.2),0 0 0 1px rgba(215,226,255,.12)}
-.logo svg{width:26px;height:26px;display:block}
-/* Typ-Glyphen: Org-Zeichen = Unternehmen, Dokument = Tarif — A/B/C steht im
-   Namen, die Kachel sagt, WAS die Karte ist */
-.wn .logo{width:36px;height:36px;background:rgba(35,120,231,.3);
-  box-shadow:inset 0 1px 0 rgba(215,226,255,.14);color:#fff}
-.wn .logo svg{width:20px;height:20px}
-.wname{font-size:15px;font-weight:500;letter-spacing:.02em;color:rgba(255,255,255,.95)}
-/* Tarif-Zeile: Kachel im Legenden-Format (.cico) vor dem Namen */
-.plabel{display:flex;align-items:center;gap:10px;min-width:0}
-.pico{flex:none;width:20px;height:20px;display:grid;place-items:center;border-radius:6px;
-  background:linear-gradient(180deg,rgba(26,62,100,.9),rgba(10,30,51,.92));
-  box-shadow:inset 0 1px 0 rgba(215,226,255,.2),0 0 0 1px rgba(215,226,255,.12);
-  color:var(--lift)}
-.pico svg{width:12px;height:12px;display:block}
-.pname{font-size:15px;font-weight:500;letter-spacing:.01em;color:rgba(255,255,255,.95);
-  white-space:nowrap}
-
-/* Rating: Batterie — lädt zeilenweise, sobald die Karte .charged trägt */
-.tier{display:flex;gap:6px;flex:0 0 auto}
-.tier i{width:26px;height:5px;border-radius:3px;background:rgba(245,250,255,.18);
-  overflow:hidden;display:block}
-.tier i b{display:block;width:100%;height:100%;border-radius:3px;background:var(--lift);
-  transform:scaleX(0);transform-origin:left center;
-  transition:transform .632s var(--ease)}
-.card.charged .tier i.on b{transform:scaleX(1);
-  transition-delay:calc(var(--s) * 316ms)}
-
-.card.glow{background:linear-gradient(180deg,rgba(35,120,231,.38),rgba(35,120,231,.14));
-  box-shadow:0 0 0 2px var(--halo),0 0 70px -12px rgba(35,120,231,.85),
-             0 24px 48px -28px rgba(3,9,17,.8)}
-/* Finale: die Siegerkarte steigt auf, NACHDEM das Glas sich gelöst hat —
-   front hebt sie über den (unsichtbaren, aber z2) Trichter; Auswurf und
-   Wartezeit bleiben hinter dem Korpus verdeckt */
-.card.front{z-index:3}
-/* Lichtlauf (Takt 15, nach dem letzten Häkchen ~9.16s): eine schmale, schräge
-   Spiegelung zieht einmal über die Siegerkarte — wie Licht über eine
-   Klinge: langsam angesetzt, am Ende beschleunigend (ease-in-quint).
-   Nur transform bewegt sich (Compositor); both hält den Endzustand
-   ausserhalb der Karte. */
-.card.shine{overflow:hidden}
-.card.shine::before{content:'';position:absolute;top:-40%;bottom:-40%;left:0;width:56px;
-  pointer-events:none;
-  background:linear-gradient(105deg,
-    rgba(255,255,255,0) 0%,rgba(236,243,255,.34) 42%,
-    rgba(255,255,255,.72) 50%,
-    rgba(236,243,255,.34) 58%,rgba(255,255,255,0) 100%);
-  transform:translateX(-90px) rotate(8deg);
-  animation:blade 1.264s cubic-bezier(.64,0,.78,0) both}
-@keyframes blade{
-  0%  {transform:translateX(-90px) rotate(8deg)}
-  100%{transform:translateX(340px) rotate(8deg)}}
-/* Kopfzeile: dunkles Glas statt hellem — auf dem hellen Kartenzentrum
-   trennt erst der dunkle Grund die weiße Beschriftung vom Lichternetz */
-.card.head{background:linear-gradient(180deg,rgba(21,48,77,.66),rgba(10,26,44,.6));
-  box-shadow:0 0 0 1px rgba(197,198,205,.15),inset 0 1px 0 rgba(215,226,255,.14),
-             0 12px 32px rgba(9,25,44,.4)}
-
-/* ---------- Aufstellung (Schritt 11): die acht Gewinner treten an ----------
-   Klone der Gewinner-Badges (WinnersLineup) — gleiche Fläche, gleiche
-   Doppelrand-Fassung wie .win, aber OHNE Transitions: Motion fährt Flug und
-   Fall exklusiv über Inline-Transforms. z1 hält die Fälle HINTER dem
-   deckenden Trichterkorpus (z2) — das Eintauchen verdeckt die Maschine. */
-#lineup{position:absolute;inset:0;z-index:1;pointer-events:none;contain:layout style paint}
-.lico{position:absolute;left:0;top:0;width:38px;height:38px;margin:-19px 0 0 -19px;
-  display:grid;place-items:center;border-radius:9px;opacity:0;color:#fff;
-  background:var(--wbg);box-shadow:var(--wsh)}
-.lico svg{width:23px;height:23px;display:block}
+/* Lichtkreise: anonym, ohne Beschriftung — die Erzählung trägt die
+   Bewegung. OHNE CSS-Transitions auf Transform/Deckkraft: Motion fährt
+   Flug, Fall und Wurf exklusiv über Inline-Transforms. z1 hält Fälle
+   und Würfe HINTER dem deckenden Trichterkorpus (z2). */
+#dots{position:absolute;inset:0;z-index:1;pointer-events:none;contain:layout style paint}
+/* Finale: die ganze Ebene steigt über den (verlöschenden) Trichter —
+   z-Indizes der Kinder enden an der contain-Grenze, darum hebt die Ebene */
+#dots.lift{z-index:3}
+.dot{position:absolute;left:0;top:0;border-radius:50%;opacity:0;
+  transition:background .632s var(--glide),box-shadow .632s var(--glide)}
+/* Unternehmen: dieselbe Lichtfamilie wie die Gewinner-Badges (--wbg/--wsh
+   in Kreisform) — der Cross-Morph von Badge zu Kreis bleibt eine Familie */
+.dot.co{width:32px;height:32px;margin:-16px 0 0 -16px;
+  background:radial-gradient(circle at 50% 34%,rgba(120,178,250,.95),rgba(35,120,231,.55) 62%,rgba(13,42,74,.95));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.32),
+             0 0 0 1px rgba(245,250,255,.42),
+             0 0 0 3.5px rgba(35,120,231,.2),
+             0 0 26px -2px rgba(35,120,231,.9)}
+/* Tarife: kleiner, WARM — Soft Ecru + Gold aus der Sekundärpalette
+   (Design.md): auf der azurblauen Bühne unübersehbar eine andere Gattung
+   Ding. Der Trichter verwandelt das blaue Unternehmen in warme Tarife. */
+.dot.pd{width:18px;height:18px;margin:-9px 0 0 -9px;
+  background:radial-gradient(circle at 50% 34%,rgba(255,250,243,.97),rgba(245,200,102,.6) 64%,rgba(84,58,26,.92));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.32),
+             0 0 0 1px rgba(247,239,233,.4),
+             0 0 18px -2px rgba(245,200,102,.75)}
+/* front hebt den Aufsteigenden über den verlöschenden Trichter (z2);
+   der Bloom zündet erst bei Ankunft — das Licht gehört dem Ergebnis */
+.dot.front{z-index:3}
+/* Das beste Unternehmen: azurner Bloom — die Steigerung seiner Familie */
+.dot.co.glow{background:radial-gradient(circle at 50% 34%,#fff,rgba(151,197,255,.85) 58%,rgba(35,120,231,.9));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.5),
+             0 0 0 1px rgba(245,250,255,.65),
+             0 0 0 2.5px var(--halo),
+             0 0 46px -4px rgba(35,120,231,.95)}
+/* Der beste Tarif: warmer Bloom — Ecru-Kern, goldener Schein */
+.dot.pd.glow{background:radial-gradient(circle at 50% 34%,#fff,rgba(247,239,233,.92) 52%,rgba(245,200,102,.9));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.55),
+             0 0 0 1px rgba(255,250,243,.75),
+             0 0 0 2.5px rgba(245,200,102,.4),
+             0 0 46px -4px rgba(245,200,102,.95)}
 
 /* ---------- Trichter: dimensionales Glas (deckend, im Vordergrund) ---------- */
-#funnel{position:absolute;inset:0;width:1600px;height:900px;opacity:0;z-index:2;
+.funnel{position:absolute;inset:0;width:1600px;height:900px;opacity:0;z-index:2;
   overflow:visible;transform-origin:50% 66%;pointer-events:none}
-#funnel .lip{stroke:var(--blue);stroke-width:2.5}
-#funnel .sep{stroke:rgba(215,226,255,.14);stroke-width:1;transition:stroke 1.264s ease}
-#funnel.active .sep{stroke:rgba(215,226,255,.3);transition-delay:calc(var(--i) * 1.264s)}
-#funnel .edge{stroke-width:1.5;fill:none}
-/* Kriterien: Ladebalken-Sequenz — Wort + Zeilenband leuchten im Sekundentakt auf */
-#funnel .crit{font-family:var(--font-inter),Inter,system-ui,sans-serif;
-  font-size:13px;font-weight:500;letter-spacing:.12em;
-  text-transform:uppercase;fill:rgba(215,226,255,.55);text-anchor:middle;
+.funnel .lip{stroke:var(--blue);stroke-width:2.5}
+/* Typenschild: EIN Wort auf dem Glas statt Kriterienzeilen — glimmt,
+   hell sobald die Maschine prüft (.active), löst sich mit dem Glas */
+.funnel .flabel{font-family:var(--font-inter),Inter,system-ui,sans-serif;
+  font-size:20px;font-weight:500;letter-spacing:.26em;text-transform:uppercase;
+  fill:rgba(215,226,255,.6);text-anchor:middle;
   transition:fill 1.264s ease,opacity 1.264s ease}
-#funnel.recede .crit{opacity:0}
-#funnel.active .crit{fill:rgba(255,255,255,.95);transition-delay:calc(var(--i) * 1.264s)}
-#funnel .rowband{fill:rgba(95,163,245,0);transition:fill 1.264s ease}
-#funnel .rowband.alt{fill:rgba(215,226,255,.04)}
-#funnel.active .rowband{fill:rgba(95,163,245,.13);transition-delay:calc(var(--i) * 1.264s)}
-/* Prüfstrom-Modus: die Kriterienleiter läuft im Strom-Takt statt im
-   Sekundentakt — fast liegt in beiden Prüfungen an (Schritte 11 und 15):
-   die Leiter leuchtet, WÄHREND der Strom fällt bzw. eingesaugt wird */
-#funnel.fast.active .rowband,#funnel.fast.active .crit,#funnel.fast.active .sep{
-  transition-delay:calc(var(--i) * .316s)}
+.funnel.active .flabel{fill:rgba(255,255,255,.96)}
+.funnel.recede .flabel{opacity:0}
+.funnel .edge{stroke-width:1.5;fill:none}
+/* Zeilenbänder: die Lade-Sequenz der Maschine — leuchten nacheinander auf */
+.funnel .rowband{fill:rgba(95,163,245,0);transition:fill 1.264s ease}
+.funnel .rowband.alt{fill:rgba(215,226,255,.04)}
+.funnel.active .rowband{fill:rgba(95,163,245,.13);transition-delay:calc(var(--i) * 1.264s)}
+/* Prüfstrom-Modus: die Bänder laden im Strom-Takt statt im Sekundentakt —
+   sie leuchten, WÄHREND die Kreise fallen */
+.funnel.fast.active .rowband{transition-delay:calc(var(--i) * .316s)}
 /* Blitzen, solange der Strom durchläuft: Zeilenbänder pulsieren versetzt,
    die Lichtkante flackert mit — Animation übersteuert die fill-Transition,
    nach dem Entfernen von .flash übernimmt der ruhige active-Zustand */
 @keyframes rowFlash{0%,100%{fill:rgba(95,163,245,.05)}50%{fill:rgba(95,163,245,.22)}}
 @keyframes lipFlash{0%,100%{stroke:var(--blue)}50%{stroke:#A9CCFF}}
-#funnel.flash .rowband{animation:rowFlash .632s var(--breathe) calc(var(--i) * .158s) infinite}
-#funnel.flash .lip{animation:lipFlash .632s var(--breathe) infinite}
+.funnel.flash .rowband{animation:rowFlash .632s var(--breathe) calc(var(--i) * .158s) infinite}
+.funnel.flash .lip{animation:lipFlash .632s var(--breathe) infinite}
 
-/* ---------- Finale (Schritt 16): Empfehlung im Zentrum ---------- */
+/* ---------- Finale (Schritt 13): der Schriftzug unter dem Lichtkreis ---------- */
 #finale{position:absolute;left:50%;top:560px;width:1000px;margin-left:-500px;text-align:center;
   opacity:0;z-index:3;pointer-events:none}
-/* Lesbarkeit auf dem Lichternetz: #scrim-low (.lowlit) dunkelt den Grund,
-   die Texte tragen zusätzlich einen weichen Schein — zusammen ≥ AA */
-#finale .tag{font-size:12.5px;font-weight:500;letter-spacing:.2em;text-transform:uppercase;
-  color:#9CC6FA;text-shadow:0 1px 10px rgba(3,9,17,.5);margin-bottom:26px}
-.fcrit{display:inline-flex;align-items:center;gap:9px;margin:0 14px;opacity:0;
-  font-size:13.5px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;
-  color:rgba(236,243,255,.96);text-shadow:0 1px 8px rgba(3,9,17,.5)}
-.fcrit svg{width:15px;height:15px;flex:0 0 auto}
-.fcrit svg path{stroke:var(--lift);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+/* Lesbarkeit auf dem Lichternetz: #scrim-final dunkelt den Grund, der
+   Schriftzug trägt zusätzlich einen weichen Schein — zusammen ≥ AA.
+   Die Unterzeile benennt, WAS gewonnen hat: der Tarif, warm wie sein Kreis. */
+#finale .tag{font-size:14px;font-weight:500;letter-spacing:.24em;text-transform:uppercase;
+  color:#9CC6FA;text-shadow:0 1px 10px rgba(3,9,17,.5)}
+#finale .fsub{font-size:13.5px;letter-spacing:.04em;margin-top:12px;
+  color:rgba(247,239,233,.88);text-shadow:0 1px 8px rgba(3,9,17,.5)}
 
 /* Nur für Screenreader: Evidenz je Schritt */
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
@@ -533,9 +464,8 @@ body:active #stage:not(.busy):not(.final) .hint-ico,
   #counter{outline:1px solid CanvasText}
   .ico{outline:1px solid CanvasText}
   #icons.sweep .win,#icons.done .win{forced-color-adjust:none}
-  .card{outline:1px solid CanvasText}
-  .tier i{outline:1px solid CanvasText}
-  .tier i b{background:Highlight;forced-color-adjust:none}
+  .dot{outline:1px solid CanvasText}
+  .dot.glow{background:Highlight;forced-color-adjust:none}
 }
 
 @media (prefers-reduced-motion: reduce){

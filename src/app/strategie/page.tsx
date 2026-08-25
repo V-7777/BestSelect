@@ -1,9 +1,9 @@
-import VersionSelect from "@/components/version-select/VersionSelect";
+import Strategie from "@/components/strategie/Strategie";
 
-export default function Home() {
+export default function StrategiePage() {
   return (
     <>
-      <VersionSelect />
+      <Strategie />
       <noscript>
         <div
           style={{
@@ -16,7 +16,7 @@ export default function Home() {
             textAlign: "center",
           }}
         >
-          Diese Seite benötigt JavaScript.
+          Diese Präsentation benötigt JavaScript.
         </div>
       </noscript>
     </>

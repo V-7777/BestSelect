@@ -1,0 +1,278 @@
+/* ============================================================
+   KAPITELWAHL (Index) + Kurzfassung auf dem Showroom-Hintergrund
+   Am Anfang wählen drei Pillen das Kapitel; Version 2 spielt die
+   Kurzfassung: Klick (weiter) · ← zurück · Leertaste/→ weiter;
+   am Kapitelende fragen zwei Pillen: Nochmal · Zurück zur Übersicht.
+   ============================================================ */
+
+/* Tokens (Farben, Holo-Töne, Bewegungskurven) liegen in src/app/globals.css —
+   Quelle der Wahrheit für alle Kapitel. */
+html,body{height:100%;overflow:hidden}
+body{background:var(--ink-deep);color:var(--cream);cursor:pointer;
+  font-family:var(--font-inter),Inter,system-ui,-apple-system,sans-serif;
+  -webkit-font-smoothing:antialiased}
+
+/* Die Seite blendet sich beim Mount per tx() ein */
+#vs-root{position:fixed;inset:0;overflow:hidden;opacity:0}
+
+/* Vollbild-Hintergrund, kein Bühnen-Fit. Der Verlauf unter dem Bild ist
+   zugleich der Nothalt bei fehlendem Asset. */
+#vs-bg{position:absolute;inset:0;
+  background:url('/background2.png') center/cover no-repeat,
+    radial-gradient(115% 95% at 50% 40%, #0D2239 0%, var(--ink) 48%, var(--ink-deep) 100%)}
+/* Scrim: Lesefläche über Tisch und Vordergrund — die obere Bildhälfte mit
+   dem Weitblick-Logo bleibt frei */
+#vs-bg::after{content:'';position:absolute;inset:0;
+  background:radial-gradient(80% 55% at 50% 72%,
+    rgba(5,14,25,.6) 0%, rgba(5,14,25,.34) 55%, rgba(5,14,25,.1) 100%)}
+
+#vs-content{position:absolute;inset:0;display:grid;place-items:center;
+  text-align:center;z-index:2}
+
+/* Panels liegen übereinander; visibility nimmt inaktive Panels aus
+   Lesereihenfolge und Tab-Folge */
+.vs-panel{grid-area:1/1;visibility:hidden;opacity:0;
+  width:min(720px,86vw);
+  transition:opacity .632s var(--ease),visibility 0s .632s}
+.vs-panel.on{visibility:visible;opacity:1;
+  transition:opacity 1.264s var(--ease),visibility 0s}
+/* Die Dioramen stehen auf der Tischplatte: Oberkante unter dem Wand-Logo,
+   Fußpunkte auf der Platte, der Titel an der vorderen Kante im Lampenlicht */
+.vs-panel.wide{width:min(920px,94vw);place-self:start center;margin-top:41vh}
+/* Schritt 2 sitzt 88px höher: sein Titel liegt damit auf derselben
+   Tischlinie wie „Der ganze Markt, gescannt." — die Maschine rückt
+   relativ zum Titel entsprechend mit nach oben */
+.vs-panel.wide.p2{margin-top:calc(41vh - 88px)}
+/* Die Maschine rückt ein Stück tiefer auf die Platte; der Titel bleibt
+   auf der gemeinsamen Tischlinie (30px − 24px Ausgleich) */
+/* Der Auslauf zielt auf den gravierten Kreis der Tischmitte: der liegt
+   in Background2 bei 49,2 % der Bildbreite, knapp links der Mitte —
+   die Bühne rückt proportional mit (cover: Bildbreite = Viewportbreite) */
+.p2 .vi-stage2{margin-top:24px;transform:translate(-0.78vw,20px)}
+/* Der Schriftzug rückt mit der Maschine — der Titel bleibt auf der Linie */
+.p2 .vi-finale{transform:translate(-0.78vw,20px)}
+.p2 .vi-ttitle{margin-top:49px}
+
+/* Gestaffelte Auftritte innerhalb eines Panels (Takt-Unterteilungen) */
+.vs-rise{opacity:0;transform:translateY(14px);
+  transition:opacity .632s var(--spring),transform .632s var(--spring)}
+/* transform braucht auf Fließtext-Spans eine Box */
+span.vs-rise{display:inline-block}
+.vs-panel.on .vs-rise{opacity:1;transform:none}
+.vs-panel.on .d1{transition-delay:.316s}
+.vs-panel.on .d2{transition-delay:.474s}
+.vs-panel.on .d3{transition-delay:.632s}
+.vs-panel.on .d4{transition-delay:.79s}
+.vs-panel.on .d5{transition-delay:.948s}
+
+.vs-h1{font-family:'Selecta',var(--font-display),'Schibsted Grotesk',Inter,system-ui,sans-serif;
+  font-weight:600;font-size:clamp(30px,4vw,44px);line-height:1.1;
+  letter-spacing:-.022em;margin:0 0 16px;text-wrap:balance;
+  text-shadow:0 1px 12px rgba(3,9,17,.55)}
+.vs-sub{font-size:clamp(14px,1.3vw,16px);line-height:1.55;color:var(--muted);
+  margin:0 auto;max-width:560px;text-shadow:0 1px 8px rgba(3,9,17,.5)}
+.vs-kicker{font-size:13px;font-weight:500;letter-spacing:.24em;text-transform:uppercase;
+  color:#9CC6FA;margin:0 0 26px;text-shadow:0 1px 10px rgba(3,9,17,.5)}
+
+/* ============================================================
+   Rückblick-Dioramen: Hologramme, die sich aus dem Tisch aufbauen
+   ============================================================ */
+
+/* Der Titel liegt an der VORDEREN Tischkante, wo das Lampenlicht aufsetzt:
+   perspektivisch gekippt, im Licht des Leuchtstreifens */
+.vi-ttitle{margin:56px 0 0;font-size:clamp(22px,2.8vw,34px);
+  color:#CDE7FF;text-wrap:balance;
+  text-shadow:0 0 14px var(--holo-glow),0 0 42px rgba(95,163,245,.35),
+              0 1px 2px rgba(3,9,17,.65);
+  opacity:0;transform:perspective(860px) rotateX(32deg) translateY(14px);
+  transform-origin:50% 0;
+  transition:opacity 1.264s var(--ease),transform 1.264s var(--ease)}
+.vs-panel.on .vi-ttitle{opacity:1;
+  transform:perspective(860px) rotateX(32deg) translateY(0)}
+
+/* Hologramm-Aufbau (2 Takte): von unten nach oben aus dem Tisch — die
+   Kachel steigt, während die Beschneidung sie von der Unterkante freigibt */
+.vi-holo{position:relative;opacity:0;transform:translateY(34px);
+  clip-path:inset(100% 0 -40px 0);
+  transition:opacity 1.264s var(--glide) var(--fd,0s),
+             transform 1.264s var(--spring) var(--fd,0s),
+             clip-path 1.264s var(--glide) var(--fd,0s)}
+.vs-panel.on .vi-holo{opacity:1;transform:none;clip-path:inset(-40px 0 -40px 0)}
+/* Projektionslicht: der Fußpunkt des Hologramms auf dem Tisch */
+.vi-base{position:absolute;left:10%;right:10%;bottom:-16px;height:26px;
+  border-radius:50%;pointer-events:none;
+  background:radial-gradient(50% 100% at 50% 50%,rgba(120,190,255,.4),rgba(120,190,255,0) 72%);
+  filter:blur(5px)}
+
+/* ---------- Schritt 1: Nachtkarte + Marktleiter ---------- */
+/* flex-end: beide Fußpunkte stehen auf derselben Tischlinie */
+.vi-market{display:flex;justify-content:center;align-items:flex-end;gap:26px;
+  flex-wrap:wrap;
+  /* Luft für das Wand-Logo: die Karten rücken ein Stück tiefer auf die
+     Platte (Transform: der Titel bleibt auf der gemeinsamen Tischlinie) */
+  transform:translateY(22px)}
+.vi-holo.hmap{flex:1 1 340px;max-width:440px}
+.vi-holo.hledger{flex:0 0 288px}
+/* Karten-Platte: die Nachtkarte als holographische Glasplatte */
+.vi-map{position:relative;width:100%;aspect-ratio:16/9;
+  border-radius:14px;overflow:hidden;
+  background:url('/germany-night.png') center/cover no-repeat,
+    radial-gradient(120% 100% at 50% 40%, #0D2239 0%, var(--ink-deep) 100%);
+  box-shadow:inset 0 1px 0 rgba(158,209,255,.22),0 0 0 1px var(--holo-line),
+             0 0 30px rgba(95,163,245,.16),0 18px 44px rgba(9,25,44,.5)}
+/* Vignette + feine Scanlinien: die Textur eines projizierten Bildes */
+.vi-map::after{content:'';position:absolute;inset:0;
+  background:repeating-linear-gradient(0deg,rgba(158,209,255,.045) 0 1px,rgba(158,209,255,0) 1px 4px),
+    radial-gradient(120% 100% at 50% 42%,
+    rgba(5,14,25,0) 0%,rgba(5,14,25,.05) 60%,rgba(5,14,25,.42) 100%)}
+
+/* Mini-Badges: dasselbe Glas wie .ico der Präsentation, auf 26px gerechnet */
+.vi-ico{position:absolute;width:26px;height:26px;display:grid;place-items:center;
+  border-radius:8px;color:var(--vc);z-index:1;
+  opacity:0;transform:translate(-50%,-50%) scale(.3);
+  background:linear-gradient(180deg,rgba(26,62,100,.93),rgba(10,30,51,.95));
+  box-shadow:inset 0 1px 0 rgba(215,226,255,.24),0 0 0 1px rgba(215,226,255,.15),
+             0 3px 11px rgba(3,9,17,.55);
+  transition:transform .632s var(--spring) var(--fd,0s),
+             opacity .632s var(--glide) var(--fd,0s)}
+.vi-ico svg{width:15px;height:15px;display:block}
+.vs-panel.on .vi-ico{opacity:1;transform:translate(-50%,-50%) scale(1)}
+
+/* Kategoriefarben — identisch zur Präsentation (best-select.css .ci-…) */
+.vi-bsp{--vc:#F5C866}.vi-vv{--vc:#C3B2F7}.vi-spk{--vc:var(--cream)}
+.vi-vers{--vc:var(--lift)}.vi-ibt{--vc:#F49B7A}.vi-stb{--vc:#7FDCC3}
+.vi-bank{--vc:#62D8E8}.vi-fonds{--vc:#9DAFF7}
+
+/* Marktleiter: die Zähler-Karte im Kleinformat, holographisch gefasst */
+.vi-ledger{width:100%;padding:4px;border-radius:14px;text-align:left;
+  background:rgba(95,163,245,.05);
+  -webkit-backdrop-filter:blur(20px) saturate(1.35);backdrop-filter:blur(20px) saturate(1.35);
+  box-shadow:0 0 0 1px var(--holo-line),0 0 30px rgba(95,163,245,.16),
+             0 18px 44px rgba(9,25,44,.5)}
+.vi-core{display:flex;flex-direction:column;padding:8px 14px;border-radius:10px;
+  background:linear-gradient(180deg,rgba(158,209,255,.14),rgba(95,163,245,.05));
+  box-shadow:inset 0 1px 0 rgba(158,209,255,.22),inset 0 0 0 1px rgba(158,209,255,.05)}
+.vi-row{display:flex;align-items:center;gap:9px;height:24px;
+  font-size:10px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--muted);opacity:0;transform:translateY(8px);
+  transition:transform .632s var(--spring) var(--fd,0s),
+             opacity .632s var(--glide) var(--fd,0s)}
+.vs-panel.on .vi-row{opacity:1;transform:none}
+.vi-tile{flex:none;width:18px;height:18px;display:grid;place-items:center;border-radius:5px;
+  color:var(--vc);background:linear-gradient(180deg,rgba(26,62,100,.9),rgba(10,30,51,.92));
+  box-shadow:inset 0 1px 0 rgba(215,226,255,.2),0 0 0 1px rgba(215,226,255,.12)}
+.vi-tile svg{width:11px;height:11px;display:block}
+.vi-label{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vi-count{margin-left:auto;font-size:12.5px;font-weight:500;color:#fff;
+  letter-spacing:.01em;font-variant-numeric:tabular-nums}
+/* Summenzeile: Haarlinie oben per Innenschatten (No-Line-Regel) */
+.vi-total{height:32px;margin-top:5px;box-shadow:inset 0 1px 0 rgba(158,209,255,.25)}
+.vi-total .vi-count{font-size:15px;text-shadow:0 0 12px rgba(158,209,255,.5)}
+
+/* ---------- Schritt 2: EINE Bühne, zwei Maschinen nacheinander ---------- */
+.vi-funnelstage{display:flex;flex-direction:column;align-items:center}
+/* Feste Pixel-Bühne (400×289 ≙ viewBox 360×260): die Punkte fliegen in
+   absoluten Koordinaten per Transform, wie in der Trichterphase */
+.vi-stage2{position:relative;width:400px;height:289px;margin:0 auto}
+/* Beide Maschinen übereinander; .built gibt sie von unten frei, Deckkraft
+   und Hub fährt die Choreografie per tx() */
+.vi-glass{position:absolute;inset:0;width:100%;height:100%;overflow:visible;
+  clip-path:inset(100% 0 -40px 0);
+  transition:clip-path 1.264s var(--glide)}
+.vi-glass.built{clip-path:inset(-40px 0 -40px 0)}
+.vi-stage2 .vi-base{opacity:0;transition:opacity 1.264s var(--glide) .316s}
+.vs-panel.on .vi-stage2 .vi-base{opacity:1}
+.vi-band{fill:rgba(120,190,255,.14)}
+.vi-band.alt{fill:rgba(120,190,255,.08)}
+.vi-edge{stroke-width:1.5;fill:none}
+.vi-lip{stroke:var(--holo-hi);stroke-width:2.5}
+.vi-flabel{font-family:var(--font-inter),Inter,system-ui,sans-serif;
+  font-size:10px;font-weight:500;letter-spacing:.2em;text-transform:uppercase;
+  fill:rgba(230,244,255,.95);text-anchor:middle}
+
+/* Lichtkreise — dieselben Rezepte wie #dots der Präsentation, im Holo-Azur.
+   OHNE CSS-Übergänge auf Transform/Deckkraft: Motion fährt Flug, Fall und
+   Wurf exklusiv über Inline-Transforms (Muster der Trichterphase). */
+.vi-dot{position:absolute;left:0;top:0;border-radius:50%;opacity:0;
+  transition:background .632s var(--glide),box-shadow .632s var(--glide)}
+.vi-dot.co{width:20px;height:20px;margin:-10px 0 0 -10px;
+  background:radial-gradient(circle at 50% 34%,rgba(158,209,255,.95),rgba(95,163,245,.6) 62%,rgba(20,60,110,.95));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.32),0 0 0 1px rgba(200,230,255,.45),
+             0 0 0 2.5px rgba(95,163,245,.22),0 0 18px -2px rgba(95,163,245,.95)}
+.vi-dot.co.out{width:24px;height:24px;margin:-12px 0 0 -12px}
+.vi-dot.pd{width:14px;height:14px;margin:-7px 0 0 -7px;
+  background:radial-gradient(circle at 50% 34%,rgba(255,250,243,.97),rgba(245,200,102,.6) 64%,rgba(84,58,26,.92));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.32),0 0 0 1px rgba(247,239,233,.4),
+             0 0 14px -2px rgba(245,200,102,.75)}
+/* Der beste Tarif: warmer Bloom — Ecru-Kern, goldener Schein */
+.vi-dot.pd.glow{background:radial-gradient(circle at 50% 34%,#fff,rgba(247,239,233,.92) 52%,rgba(245,200,102,.9));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.55),0 0 0 1px rgba(255,250,243,.75),
+             0 0 0 2.5px rgba(245,200,102,.4),0 0 34px -4px rgba(245,200,102,.95)}
+
+/* Finale unter der Bühne: der Schriftzug gehört dem Ergebnis */
+.vi-finale{margin-top:14px;font-size:11.5px;letter-spacing:.05em;color:var(--muted);
+  line-height:1.5;text-align:center;opacity:0}
+.vi-tag{display:block;font-size:11.5px;font-weight:500;letter-spacing:.24em;
+  text-transform:uppercase;color:#9CC6FA;margin-bottom:4px}
+
+/* ---------- Index: drei Pillen (Rezept aus .hint-pill) ---------- */
+/* Der Kicker trennt Titelblock und Kapitelwahl */
+.vs-index .vs-kicker{margin-top:44px}
+.vs-pills{display:flex;flex-wrap:wrap;justify-content:center;gap:16px}
+.vs-pill{display:inline-flex;align-items:center;gap:14px;
+  padding:8px 8px 8px 24px;border-radius:999px;color:rgba(245,250,255,.86);
+  font-size:12px;font-weight:500;letter-spacing:.16em;text-transform:uppercase;
+  font-family:inherit;cursor:pointer;text-decoration:none;
+  background:linear-gradient(180deg,rgba(245,250,255,.11),rgba(245,250,255,.035));
+  box-shadow:inset 0 1px 0 rgba(245,250,255,.15),0 0 0 1px rgba(215,226,255,.13),
+             0 10px 28px rgba(9,25,44,.45);
+  transition:transform .632s var(--glide),box-shadow .632s var(--glide),
+             opacity .632s var(--glide)}
+/* Während der Choreografie nehmen sich die Pillen zurück */
+#vs-root.busy .vs-pill{opacity:.6}
+/* Tastatur-Fokus: Halo statt Outline */
+.vs-pill:focus-visible{outline:none;
+  box-shadow:inset 0 1px 0 rgba(245,250,255,.15),0 0 0 1px rgba(215,226,255,.13),
+             0 0 0 3px rgba(95,163,245,.5),0 10px 28px rgba(9,25,44,.45)}
+.vs-pill:active{transform:scale(.978);
+  box-shadow:inset 0 1px 0 rgba(245,250,255,.15),0 0 0 1px rgba(215,226,255,.18),
+             0 4px 14px rgba(9,25,44,.45)}
+.vs-ico{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;
+  background:rgba(245,250,255,.10);
+  box-shadow:inset 0 1px 0 rgba(245,250,255,.2),0 0 0 1px rgba(215,226,255,.08);
+  transition:transform .632s var(--glide),background .632s var(--glide)}
+.vs-ico svg{width:14px;height:14px;display:block}
+.vs-pill:hover .vs-ico{background:rgba(245,250,255,.17)}
+
+/* ---------- Fußzeile: Fortschritt der Kurzfassung ---------- */
+.vs-meta{position:fixed;right:96px;bottom:22px;z-index:3;opacity:0;
+  font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);
+  font-variant-numeric:tabular-nums;padding:9px 16px;border-radius:999px;
+  background:linear-gradient(180deg,rgba(245,250,255,.07),rgba(245,250,255,.025));
+  box-shadow:inset 0 1px 0 rgba(245,250,255,.10),0 0 0 1px rgba(215,226,255,.09);
+  transition:opacity .632s var(--glide)}
+.vs-meta.show{opacity:1}
+
+/* Sofort-Render (Zurück-Navigation / Deep-Link): keine Übergänge */
+#vs-root.noanim *,#vs-root.noanim *::before,#vs-root.noanim *::after{
+  transition:none !important;animation:none !important}
+
+/* Nur für Screenreader */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
+  clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+@media (forced-colors: active){
+  .vs-pill{outline:1px solid CanvasText}
+  .vs-meta{outline:1px solid CanvasText}
+  .vi-ledger{outline:1px solid CanvasText}
+  .vi-ico,.vi-tile{outline:1px solid CanvasText}
+  .vi-dot{outline:1px solid CanvasText}
+  .vi-dot.pd.glow{background:Highlight;forced-color-adjust:none}
+}
+
+@media (prefers-reduced-motion: reduce){
+  #vs-root *,#vs-root *::before,#vs-root *::after{
+    transition-duration:.01ms !important;transition-delay:0ms !important;
+    animation-duration:.01ms !important;animation-delay:0ms !important;
+    animation-iteration-count:1 !important}
+}
