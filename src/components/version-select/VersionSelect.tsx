@@ -12,7 +12,10 @@
    Logo an der Wand bleibt frei. Schritt 2 ist EINE durchgehende Maschinen-
    Choreografie: Prüfung 1 arbeitet, fährt ab, ihre drei Besten wandern in
    Prüfung 2, der beste Tarif bleibt. Konventionen wie BestSelect:
-   go()/lock()/settle(), 632-ms-Raster, ?step-Spiegel in der URL. */
+   go()/lock()/settle(), 632-ms-Raster, ?step-Spiegel in der URL.
+   Bühne: feste 1600×900-Fläche im Contain-Fit (useStageFit) — das
+   Showroom-Foto ist auf jedem Bildschirm vollständig zu sehen (Letterbox
+   statt Beschnitt, auch auf 4:3-Beamern); Maße im CSS sind Bühnen-Pixel. */
 
 import { forwardRef, useCallback, useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
@@ -20,6 +23,7 @@ import Link from 'next/link';
 import { CATS } from '@/lib/best-select/constants';
 import { WINNER_ICONS } from '@/lib/best-select/placement';
 import { bump, countUp, fmt, later, pad, reduced, tx } from '@/lib/best-select/animate';
+import { useStageFit } from '@/lib/best-select/stage-fit';
 import IconGlyphs from '@/components/best-select/IconGlyphs';
 import './version-select.css';
 
@@ -73,7 +77,8 @@ function vsEvidence(step: number): string {
   if (step === VS_LAST) return 'Kapitelende: Nochmal spielt die Kurzfassung noch einmal. '
     + 'Zurück zur Übersicht öffnet die Kapitelwahl.';
   return 'Weitblick Best Select — Kapitelwahl: Version 1 startet die vollständige Präsentation. '
-    + 'Version 2 spielt die Kurzfassung in zwei Schritten. Kapitel 3 öffnet das Strategie-Kapitel.';
+    + 'Version 2 spielt die Kurzfassung in zwei Schritten. Kapitel 3 öffnet das Strategie-Kapitel. '
+    + 'Kapitel 7 zeigt den Status Quo: die Begleitung über die Lebensereignisse hinweg.';
 }
 
 export default function VersionSelect() {
@@ -82,6 +87,7 @@ export default function VersionSelect() {
   viewRef.current = view;
   const busyRef = useRef(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
   const numRef = useRef<HTMLSpanElement>(null);
   const f1Ref = useRef<SVGSVGElement>(null);
   const f2Ref = useRef<SVGSVGElement>(null);
@@ -89,6 +95,8 @@ export default function VersionSelect() {
   const coRefs = useRef<(HTMLSpanElement | null)[]>([]);
   const svRefs = useRef<(HTMLSpanElement | null)[]>([]);
   const pdRefs = useRef<(HTMLSpanElement | null)[]>([]);
+
+  useStageFit(rootRef, stageRef, { w: 1600, h: 900, fit: 'contain' });
 
   const lock = useCallback((ms: number) => {
     busyRef.current = true;
@@ -322,6 +330,8 @@ export default function VersionSelect() {
         go(st + 1);
       }}
     >
+      {/* Die Bühne: 1600×900, per useStageFit ganz in den Viewport gepasst */}
+      <div id="vs-stage" ref={stageRef}>
       <div id="vs-bg" aria-hidden="true" />
       <IconGlyphs />
 
@@ -353,6 +363,15 @@ export default function VersionSelect() {
             </button>
             <Link href="/strategie" className="vs-pill vs-rise d5">
               <span>Kapitel 3 — Strategie</span>
+              <span className="vs-ico" aria-hidden="true">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor"
+                  strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3.2 8h9.4M8.9 4.3 12.6 8l-3.7 3.7" />
+                </svg>
+              </span>
+            </Link>
+            <Link href="/status-quo" className="vs-pill vs-rise d6">
+              <span>Kapitel 7 — Status Quo</span>
               <span className="vs-ico" aria-hidden="true">
                 <svg viewBox="0 0 16 16" fill="none" stroke="currentColor"
                   strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
@@ -410,7 +429,7 @@ export default function VersionSelect() {
               <span className="vi-base" />
             </figure>
           </div>
-          <h1 className="vs-h1 vi-ttitle">Der ganze Markt, gescannt.</h1>
+          <h1 className="vs-h1 vi-ttitle">Unabhängigkeit</h1>
         </section>
 
         {/* Rückblick 2: eine Bühne, zwei Maschinen nacheinander — der Fluss
@@ -438,7 +457,7 @@ export default function VersionSelect() {
               <span className="vi-tag">Best Select</span>
             </div>
           </div>
-          <h1 className="vs-h1 vi-ttitle">Zwei Prüfungen. Eine Empfehlung.</h1>
+          <h1 className="vs-h1 vi-ttitle">Annahme.</h1>
         </section>
 
         {/* Kapitelende: dasselbe Paar wie in allen Kapiteln */}
@@ -467,12 +486,13 @@ export default function VersionSelect() {
         </section>
       </main>
 
-      <div className="sr-only" aria-live="polite">{vsEvidence(view.step)}</div>
-
       <div className={'vs-meta' + (view.step === 1 || view.step === 2 ? ' show' : '')}
         aria-hidden="true">
         {pad(Math.min(view.step, 2))}&thinsp;/&thinsp;02
       </div>
+      </div>
+
+      <div className="sr-only" aria-live="polite">{vsEvidence(view.step)}</div>
     </div>
   );
 }

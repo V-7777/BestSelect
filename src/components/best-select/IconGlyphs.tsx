@@ -44,6 +44,45 @@ export default function IconGlyphs() {
           <path d="M4.2 2.5 H9.3 L11.8 5 V13.5 H4.2 Z M9.3 2.5 V5 H11.8 M6.3 8.2 H9.7 M6.3 10.6 H9.7"
             fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </symbol>
+        {/* Lebenslinie (Kapitel 7 — Status Quo): Heute · Hochzeit · Nachwuchs ·
+            Gehaltserhöhung · Häkchen der Aktualisierungen (Neuer Job = g-case) */}
+        <symbol id="g-today" viewBox="0 0 16 16">
+          <path d="M12.6 8 A4.6 4.6 0 1 1 3.4 8 A4.6 4.6 0 1 1 12.6 8"
+            fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          <circle cx="8" cy="8" r="1.5" fill="currentColor" />
+        </symbol>
+        <symbol id="g-rings" viewBox="0 0 16 16">
+          <path d="M9.4 8.5 A3.4 3.4 0 1 1 2.6 8.5 A3.4 3.4 0 1 1 9.4 8.5 M13.4 8.5 A3.4 3.4 0 1 1 6.6 8.5 A3.4 3.4 0 1 1 13.4 8.5"
+            fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </symbol>
+        <symbol id="g-child" viewBox="0 0 16 16">
+          <path d="M7.4 4.6 A1.8 1.8 0 1 1 3.8 4.6 A1.8 1.8 0 1 1 7.4 4.6 M2.4 13 V11.4 A3.2 3 0 0 1 8.8 11.4 V13 M13 7.4 A1.4 1.4 0 1 1 10.2 7.4 A1.4 1.4 0 1 1 13 7.4 M9.4 13 V12 A2.2 2 0 0 1 13.8 12 V13"
+            fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </symbol>
+        <symbol id="g-raise" viewBox="0 0 16 16">
+          <path d="M8 12.6 V3.8 M4.6 7.2 L8 3.8 L11.4 7.2 M3.4 12.6 H12.6"
+            fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </symbol>
+        {/* Rente: Sonne am Horizont */}
+        <symbol id="g-sun" viewBox="0 0 16 16">
+          <path d="M4.2 10.6 A3.8 3.8 0 0 1 11.8 10.6 M2.4 10.6 H13.6 M8 3.2 V4.6 M3.4 5.2 L4.4 6.2 M12.6 5.2 L11.6 6.2 M3.2 13.2 H12.8"
+            fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </symbol>
+        <symbol id="g-check" viewBox="0 0 16 16">
+          <path d="M3.4 8.4 L6.6 11.6 L12.6 5.2"
+            fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+        </symbol>
+        {/* Strategie-Kapitel: Ziel (Zielscheibe) · Ausgaben (Geldbörse) */}
+        <symbol id="g-target" viewBox="0 0 16 16">
+          <circle cx="8" cy="8" r="5.3" fill="none" stroke="currentColor" strokeWidth="1.5" />
+          <circle cx="8" cy="8" r="1.7" fill="currentColor" />
+          <path d="M8 1.6 V3.4 M8 12.6 V14.4 M1.6 8 H3.4 M12.6 8 H14.4"
+            fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        </symbol>
+        <symbol id="g-wallet" viewBox="0 0 16 16">
+          <path d="M2.5 5.6 H12.2 A1.3 1.3 0 0 1 13.5 6.9 V12.2 A1.3 1.3 0 0 1 12.2 13.5 H3.8 A1.3 1.3 0 0 1 2.5 12.2 Z M2.5 5.6 V4.1 A1.3 1.3 0 0 1 3.8 2.8 H10.6 V5.6 M13.5 8.6 H10.6 A1 1 0 0 0 10.6 10.6 H13.5"
+            fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </symbol>
       </defs>
     </svg>
   );

@@ -1,53 +1,64 @@
 'use client';
 
 /* Kapitel 3 — Strategie: der Boardroom mit dem Wandschirm. Die Erzählung
-   spielt AUF dem Fernseher: erst übernimmt unsere Oberfläche den Schirm
-   (Information — fünf Chips mit allem, was das Gespräch ergeben hat), dann
-   verdichtet die Analyse die Chips über eine Nabe zu drei Bedarfen, dann
-   zeigt der Monats-Cashflow als Sankey-Fluss von oben nach unten den
-   Spielraum (Brutto → Abzüge → Netto → Fixkosten → freier Betrag), und als
-   Schlussbild baut sich das Strategie-Dashboard auf — Absicherung,
-   Vermögensaufbau und die Altersvorsorge als Cashflow-Verlauf (Ansparphase
-   → Renteneintritt → Rentenphase); es bleibt bis zum Kapitelende stehen.
+   spielt AUF dem Fernseher und folgt dem gesprochenen Weg: erst DEIN Ziel,
+   daraus die Ist-Situation als Finanzplan (dein Leben in Zahlen), daraus
+   ein maßgeschneiderter Plan — der Auftrag: bei gleichem Brutto mehr Netto.
+   Schritt 1 stellt diesen Weg als drei Stationen auf den Schirm, Schritt 2
+   verdichtet die Bausteine des Finanzplans im Karussell zu vier Hebeln
+   (Immobilie, Förderungen, Investments, Steuern), Schritt 3 zeigt den
+   Monats-Cashflow als Lichtader (Brutto → Abzüge → Netto → Fixkosten →
+   frei verfügbar), und als Schlussbild beweist das Dashboard den Auftrag:
+   gleiches Brutto, mehr Netto — der freie Betrag wächst um die vier Hebel;
+   es bleibt bis zum Kapitelende stehen. Family-Office-Erzählung, kein
+   Versicherungsvertrieb.
    Damit die Overlays pixelgenau auf dem Fernseher sitzen,
-   ist die Bühne wie in der Präsentation eine feste 1600×900-Fläche — hier
-   im Cover-Fit (randlos, Beschnitt statt Letterbox): Bühnen-Koordinaten
-   bleiben 1:1 Foto-Koordinaten. Konventionen wie BestSelect:
+   ist die Bühne wie in der Präsentation eine feste 1600×900-Fläche im
+   Contain-Fit (das ganze Foto bleibt sichtbar, Letterbox statt Beschnitt —
+   auch auf 4:3-Beamern): Bühnen-Koordinaten bleiben 1:1 Foto-Koordinaten. Konventionen wie BestSelect:
    go()/lock()/settle(), 632-ms-Raster, ?step-Spiegel in der URL. */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { bump, pad, reduced, tx } from '@/lib/best-select/animate';
+import { bump, fmt, pad, reduced, tx } from '@/lib/best-select/animate';
 import { useStageFit } from '@/lib/best-select/stage-fit';
 import IconGlyphs from '@/components/best-select/IconGlyphs';
 import './strategie.css';
 
 const BEAT = 632;
-const ST_LAST = 5;   /* 0 Intro · 1 Information · 2 Analyse · 3 Cashflow · 4 Strategie · 5 Kapitelende */
+const ST_LAST = 5;   /* 0 Intro · 1 Dein Weg · 2 Analyse · 3 Cashflow · 4 Strategie · 5 Kapitelende */
 
 /* Der Fernseher im Foto (leuchtendes Panel, Bezel-sicher eingerückt):
    gemessen 936→1634 / 366→740 px im 2560×1440-Original, ×0.625 auf die
    1600×900-Bühne — strategie.css führt dieselben Werte als --tv-…. */
 
-/* Die fünf Chips der Information: alles, was das Gespräch ergeben hat */
-const INFO = [
-  { key: 'org', glyph: '#g-org', label: 'Situation' },
+/* Schritt 1 — Dein Weg: die drei Stationen des gesprochenen Textes
+   (Ziel → Ist-Situation als Finanzplan → maßgeschneiderter Plan) */
+const STEPS = [
+  { key: 'ziel', glyph: '#g-target', label: 'Dein Ziel', sub: 'Wo willst du hin?' },
+  { key: 'ist', glyph: '#g-doc', label: 'Ist-Situation', sub: 'Dein Leben in Zahlen' },
+  { key: 'plan', glyph: '#g-chart', label: 'Dein Plan', sub: 'Maßgeschneidert' },
+];
+
+/* Schritt 2 — die fünf Bausteine des Finanzplans, die um die Analyse kreisen */
+const FINANZPLAN = [
+  { key: 'ziel', glyph: '#g-target', label: 'Ziel' },
   { key: 'euro', glyph: '#g-euro', label: 'Einkommen' },
-  { key: 'chart', glyph: '#g-chart', label: 'Ziele' },
+  { key: 'wallet', glyph: '#g-wallet', label: 'Ausgaben' },
+  { key: 'bank', glyph: '#g-bank', label: 'Vermögen' },
   { key: 'doc', glyph: '#g-doc', label: 'Verträge' },
-  { key: 'shield', glyph: '#g-shield', label: 'Risikoprofil' },
 ];
 
 /* Analyse-Bühne (Screen-Koordinaten 436×233): der Planet bei (218, 97),
-   die fünf Informationen stehen als Monde auf EINER Bahn um ihn — ein
+   die fünf Bausteine stehen als Monde auf EINER Bahn um ihn — ein
    Karussell, das NUR auf Klick in den Monitor weiterdreht (sonst steht
    das Bild). Basis-Phasen so gelegt, dass ein Mond exakt vorn (25 % =
    unten) steht; jeder Klick addiert 20 % auf --spin, offset-distance
    wickelt auf der geschlossenen Bahn über 100 % hinaus weiter.
    fx/fy sind die statische Stellung, falls der Browser offset-path
-   nicht kennt. Reihenfolge = INFO. */
+   nicht kennt. Reihenfolge = FINANZPLAN. */
 const ORBIT = { rx: 130, ry: 54 };
 const MOONS = [
   { od: 25, fx: 218, fy: 151 },
@@ -65,13 +76,42 @@ const DEPTH = [
   { s: 0.7, o: 0.5 },   /* 85 %: hinten rechts */
   { s: 1, o: 0.85 },    /* 5 %: rechts */
 ];
-const BEDARFE = ['Absichern', 'Aufbauen', 'Vorsorgen'];
+/* Die vier Hebel als Ergebnis der Analyse — Kurzform für die Pillen */
+const HEBEL_PILLS = ['Immobilie', 'Förderungen', 'Investments', 'Steuern'];
 
-/* Cashflow (viewBox 230×132): neun azurne Anspar-Balken, Marker am
-   Renteneintritt, fünf goldene Entnahme-Balken */
-const SAVE_H = [10, 14, 19, 23, 28, 32, 37, 41, 46];
-const DRAW_H = [40, 34, 28, 22, 17];
-const CF_BASE = 104;
+/* Die vier Hebel der Strategie (Schritt 4): Beispielwerte je Monat, die
+   auf dem freien Betrag aus Schritt 3 aufsetzen — Reihenfolge = Stapel
+   von unten nach oben. Farben aus der Haus-Familie (Gold, Creme, Azur,
+   helles Azur), damit Balkensegment und Hebel-Zeile zusammenlesen. */
+const HEBEL = [
+  { key: 'steuer', label: 'Steueroptimierung', glyph: '#g-percent', plus: 250, color: '#F5C866' },
+  { key: 'foerder', label: 'Staatl. Förderungen', glyph: '#g-bank', plus: 200, color: '#F7EFE9' },
+  { key: 'immo', label: 'Immobilie', glyph: '#g-home', plus: 150, color: '#5FA3F5' },
+  { key: 'invest', label: 'Investments', glyph: '#g-chart', plus: 100, color: '#9ED1FF' },
+];
+
+/* Beispielrechnung — EINE Basis für Schritt 3 und 4 */
+const BRUTTO = 4000;
+const FREI = 1000;   /* frei verfügbar heute — das goldene Ergebnis von Schritt 3 */
+const GAIN = HEBEL.reduce((a, h) => a + h.plus, 0);
+
+/* Hero-Diagramm (viewBox 230×132): zwei Säulen — Heute · Mit Strategie.
+   Der Maßstab richtet sich nach dem Endwert (frei + Hebel = obere Kante
+   CF_TOP), nicht nach dem Brutto: am Brutto-Maßstab wären die Segmente
+   nur 2–4 px hoch. Dass das Brutto gleich bleibt, sagt die Klammer über
+   beiden Säulen. Segmente stapeln kumuliert nach oben, jedes mit eigenem
+   Takt auf dem 632-Raster (2.528 → 4.424 s). */
+const CF_BASE = 110;
+const CF_TOP = 30;
+const CF_K = (CF_BASE - CF_TOP) / (FREI + GAIN);
+const CF_FREI_Y = CF_BASE - FREI * CF_K;
+const SEGS = (() => {
+  let acc = FREI;
+  return HEBEL.map((h, i) => {
+    const y0 = acc; acc += h.plus;
+    return { ...h, y: CF_BASE - (y0 + h.plus) * CF_K, h: h.plus * CF_K, fd: (2.528 + i * 0.632).toFixed(3) };
+  });
+})();
 
 /* Finanzstrom (Schritt 3, Screen-Koordinaten 436×233) — EINE fließende
    Lichtlinie durchläuft alle fünf Stationen der Reihe nach:
@@ -81,18 +121,18 @@ const CF_BASE = 104;
    kein Abzweig. Leitungsenden liegen einige Pixel unter den Karten,
    damit Auto-Höhen nie eine Lücke reißen. */
 const TREE = [
-  { left: 159, top: 24, title: 'Bruttogehalt', amount: '3.000,00 €', gold: false, fd: 0.632 },
-  { left: 159, top: 100, title: 'Netto', amount: '2.067,50 €', gold: false, fd: 3.16 },
-  { left: 159, top: 178, title: 'Frei verfügbar', amount: '817,50 €', gold: true, fd: 5.688 },
+  { left: 159, top: 24, title: 'Bruttogehalt', amount: '4.000,00 €', gold: false, fd: 0.632 },
+  { left: 159, top: 100, title: 'Netto', amount: '2.600,00 €', gold: false, fd: 3.16 },
+  { left: 159, top: 178, title: 'Frei verfügbar', amount: '1.000,00 €', gold: true, fd: 5.688 },
 ];
 const TREE_SIDE = [
   {
-    left: 294, top: 54, fd: 1.896, title: 'Abzüge', amount: '−932,50 €',
-    rows: [['Sozialabgaben', '−634,50 €'], ['Steuern', '−298,00 €']],
+    left: 294, top: 54, fd: 1.896, title: 'Abzüge', amount: '−1.400,00 €',
+    rows: [['Sozialabgaben', '−840,00 €'], ['Steuern', '−560,00 €']],
   },
   {
-    left: 6, top: 130, fd: 4.424, title: 'Fixkosten', amount: '−1.250,00 €',
-    rows: [['Miete', '−800,00 €'], ['Lebenshaltung', '−450,00 €']],
+    left: 6, top: 130, fd: 4.424, title: 'Fixkosten', amount: '−1.600,00 €',
+    rows: [['Miete', '−1.000,00 €'], ['Lebenshaltung', '−600,00 €']],
   },
 ];
 /* Leitungen in Fluss-Richtung — jedes Segment gehört zur Hauptader
@@ -115,30 +155,33 @@ interface StView {
    Ergebnis-Zustände, kurz sperren */
 function lockFor(n: number, dir: number): number {
   if (dir < 0) return BEAT;
-  if (n === 1) return BEAT * 5;    /* 3160: Schirm-Übernahme + fünf Chips */
-  if (n === 2) return BEAT * 7;    /* 4424: Bogen, Linien, Nabe, drei Bedarfe */
+  if (n === 1) return BEAT * 5;    /* 3160: Schirm-Übernahme, drei Stationen, Auftrag */
+  if (n === 2) return BEAT * 7;    /* 4424: Bogen, Monde, Nabe, vier Hebel */
   if (n === 3) return BEAT * 10;   /* 6320: Finanzstrom durchläuft alle fünf Stationen bis zum Gold */
-  if (n === 4) return BEAT * 10;   /* 6320: Dashboard-Aufbau + Renten-Crescendo */
+  if (n === 4) return BEAT * 10;   /* 6320: Dashboard-Aufbau + Hebel-Stapel bis zum Gold */
   return BEAT * 2;                 /* Intro / Kapitelende: 1264 */
 }
 
 /* Evidenz je Schritt für Screenreader — der Schirm ist aria-hidden */
 function stEvidence(step: number): string {
-  if (step === 1) return 'Schritt 1 von 4, Information: Persönliche Situation, Einkommen, '
-    + 'Ziele, bestehende Verträge und Risikoprofil — alle Informationen aus dem Gespräch, '
-    + 'gesammelt auf einem Schirm.';
-  if (step === 2) return 'Schritt 2 von 4, Analyse: Die Informationen kreisen wie Monde um '
-    + 'die Analyse — daraus entstehen drei Bedarfe: Absichern, Aufbauen, Vorsorgen.';
-  if (step === 3) return 'Schritt 3 von 4, Cashflow: Vom Bruttogehalt von 3.000 Euro gehen '
-    + 'Abzüge von 932,50 Euro ab — netto bleiben 2.067,50 Euro. Nach den Fixkosten — Miete '
-    + 'und Lebenshaltung, zusammen 1.250 Euro — bleibt der freie Betrag: 817,50 Euro.';
-  if (step === 4) return 'Schritt 4 von 4, Strategie: Drei Bausteine — Absicherung, '
-    + 'Vermögensaufbau und Altersvorsorge als Cashflow-Verlauf: Ansparphase bis zum '
-    + 'Renteneintritt, danach Rentenphase.';
+  if (step === 1) return 'Schritt 1 von 4, Dein Weg: Zuerst dein Ziel, daraus die Ist-Situation '
+    + 'als Finanzplan — dein Leben in Zahlen —, daraus ein maßgeschneiderter Plan. '
+    + 'Der Auftrag: bei gleichem Brutto mehr Netto.';
+  if (step === 2) return 'Schritt 2 von 4, Analyse: Die Bausteine des Finanzplans — Ziel, '
+    + 'Einkommen, Ausgaben, Vermögen, Verträge — kreisen um die Analyse; daraus entstehen '
+    + 'vier Hebel: Immobilie, Förderungen, Investments, Steuern.';
+  if (step === 3) return 'Schritt 3 von 4, Cashflow: Vom Bruttogehalt von 4.000 Euro gehen '
+    + 'Abzüge von 1.400 Euro ab — netto bleiben 2.600 Euro. Nach den Fixkosten — Miete '
+    + 'und Lebenshaltung, zusammen 1.600 Euro — bleibt der freie Betrag: 1.000 Euro.';
+  if (step === 4) return 'Schritt 4 von 4, Strategie: Gleiches Brutto von ' + fmt(BRUTTO)
+    + ' Euro, mehr Netto — der frei verfügbare Betrag wächst von ' + fmt(FREI) + ' auf '
+    + fmt(FREI + GAIN) + ' Euro im Monat durch vier Hebel: '
+    + HEBEL.map(h => h.label + ' plus ' + fmt(h.plus)).join(', ') + ' Euro.';
   if (step === ST_LAST) return 'Kapitelende: Nochmal spielt das Kapitel noch einmal. '
     + 'Zurück zur Übersicht öffnet die Kapitelwahl.';
-  return 'Kapitel 3, Strategie: Aus allen Informationen des Gesprächs entsteht eine '
-    + 'individuell entwickelte Finanzstrategie. Klick oder Pfeiltaste führt durch vier Schritte.';
+  return 'Kapitel 3, Strategie: Vom Ziel über den Finanzplan zum maßgeschneiderten Plan — '
+    + 'Immobilie, staatliche Förderungen, Investments und Steueroptimierung. '
+    + 'Klick oder Pfeiltaste führt durch vier Schritte.';
 }
 
 export default function Strategie() {
@@ -155,7 +198,7 @@ export default function Strategie() {
   const viewportRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
 
-  useStageFit(viewportRef, stageRef, { w: 1600, h: 900, fit: 'cover' });
+  useStageFit(viewportRef, stageRef, { w: 1600, h: 900, fit: 'contain' });
 
   const lock = useCallback((ms: number) => {
     busyRef.current = true;
@@ -294,30 +337,45 @@ export default function Strategie() {
           }}
         >
 
-          {/* Schritt 1 — Information: fünf Chips steigen vom Tisch auf */}
+          {/* Schritt 1 — Dein Weg: drei Stationen steigen vom Tisch auf,
+              Pfeile verbinden sie in Sprechreihenfolge, zuletzt der
+              Auftrag in Gold: gleiches Brutto, mehr Netto */}
           <section className={'st-spanel' + (s === 1 ? ' on' : '')}>
             <p className="st-shead" style={{ '--fd': '.316s' } as CSSProperties}>
-              Finanzstrategie — Information
+              Finanzstrategie — Dein Weg
             </p>
             <div className="st-chips">
-              {INFO.map((c, i) => (
-                <span
-                  key={c.key}
-                  className="st-chip"
-                  style={{ '--fd': (0.632 + i * 0.158).toFixed(3) + 's' } as CSSProperties}
-                >
-                  <span className="st-tile"><svg viewBox="0 0 16 16"><use href={c.glyph} /></svg></span>
-                  <span className="st-clabel">{c.label}</span>
-                </span>
+              {STEPS.map((c, i) => (
+                <Fragment key={c.key}>
+                  {i > 0 && (
+                    <span
+                      className="st-arrow"
+                      style={{ '--fd': (0.474 + i * 0.316).toFixed(3) + 's' } as CSSProperties}
+                    >
+                      <svg viewBox="0 0 16 16"><path d="M3 8h9.5M8.6 4.1 12.5 8l-3.9 3.9" /></svg>
+                    </span>
+                  )}
+                  <span
+                    className="st-chip"
+                    style={{ '--fd': (0.632 + i * 0.316).toFixed(3) + 's' } as CSSProperties}
+                  >
+                    <span className="st-tile"><svg viewBox="0 0 16 16"><use href={c.glyph} /></svg></span>
+                    <span className="st-clabel">{c.label}</span>
+                    <span className="st-csub">{c.sub}</span>
+                  </span>
+                </Fragment>
               ))}
             </div>
+            <p className="st-mission" style={{ '--fd': '1.896s' } as CSSProperties}>
+              Gleiches Brutto. Mehr Netto.
+            </p>
           </section>
 
           {/* Schritt 2 — Analyse: der Planet (die Analyse) hält die fünf
-              Informationen als Monde auf einer Bahn — ein Karussell: erst
-              zeichnet sich der Ring, die Monde treten an ihre Plätze, und
-              jeder Klick in den Monitor dreht die nächste Karte nach vorn;
-              darunter treten die drei Bedarfe aus */}
+              Bausteine des Finanzplans als Monde auf einer Bahn — ein
+              Karussell: erst zeichnet sich der Ring, die Monde treten an
+              ihre Plätze, und jeder Klick in den Monitor dreht die nächste
+              Karte nach vorn; darunter treten die vier Hebel aus */}
           <section
             className={'st-spanel' + (s === 2 ? ' on' : '')}
             style={{ '--spin': spin * 20 + '%' } as CSSProperties}
@@ -338,7 +396,7 @@ export default function Strategie() {
               const d = DEPTH[(i + spin) % 5];
               return (
                 <span
-                  key={INFO[i].key}
+                  key={FINANZPLAN[i].key}
                   className="st-moon"
                   style={{
                     '--orb': `ellipse(${ORBIT.rx}px ${ORBIT.ry}px at 218px 97px)`,
@@ -350,15 +408,15 @@ export default function Strategie() {
                 >
                   <span className="st-moonbody">
                     <span className="st-moontile">
-                      <svg viewBox="0 0 16 16"><use href={INFO[i].glyph} /></svg>
+                      <svg viewBox="0 0 16 16"><use href={FINANZPLAN[i].glyph} /></svg>
                     </span>
-                    <span className="st-moonlabel">{INFO[i].label}</span>
+                    <span className="st-moonlabel">{FINANZPLAN[i].label}</span>
                   </span>
                 </span>
               );
             })}
             <div className="st-needs">
-              {BEDARFE.map((b, i) => (
+              {HEBEL_PILLS.map((b, i) => (
                 <span
                   key={b}
                   className="st-need"
@@ -375,90 +433,89 @@ export default function Strategie() {
               bleibt im Raum — nur einmal, am Ende) */}
           <section className={'st-spanel' + (s === 4 || s === ST_LAST ? ' on' : '') + (s === ST_LAST ? ' dim' : '')}>
             <p className="st-shead" style={{ '--fd': '.158s' } as CSSProperties}>
-              Ihre Strategie
+              Deine Strategie
             </p>
             <div className="st-grid">
 
-              {/* Altersvorsorge: der Cashflow-Verlauf trägt das Panel */}
-              <figure className="st-card cf" style={{ '--fd': '.632s' } as CSSProperties}>
+              {/* Hero: gleiches Brutto, mehr Netto — zwei Säulen, der
+                  freie Betrag von heute (Schritt 3) und derselbe Betrag
+                  mit den vier Hebeln aufgestapelt */}
+              <figure className="st-card" style={{ '--fd': '.632s' } as CSSProperties}>
                 <figcaption className="st-ctitle">
                   <span className="st-tile sm"><svg viewBox="0 0 16 16"><use href="#g-euro" /></svg></span>
-                  Altersvorsorge
+                  Gleiches Brutto · mehr Netto
                 </figcaption>
                 <svg className="st-cashflow" viewBox="0 0 230 132" aria-hidden="true">
+                  {/* Klammer über beiden Säulen: das Brutto bleibt gleich */}
+                  <path className="st-bracket" d="M48 17 V12 H182 V17" pathLength={1}
+                    style={{ '--fd': '1.264s' } as CSSProperties} />
+                  <text className="st-cftext bracket" x="115" y="8"
+                    style={{ '--fd': '1.580s' } as CSSProperties}>
+                    Brutto {fmt(BRUTTO)} € — gleich
+                  </text>
                   {/* Grundlinie */}
-                  <line className="st-axis" x1="14" y1={CF_BASE} x2="222" y2={CF_BASE} />
-                  {/* Ansparphase: Einzahlungen wachsen */}
-                  {SAVE_H.map((h, i) => (
+                  <line className="st-axis" x1="14" y1={CF_BASE} x2="222" y2={CF_BASE}
+                    style={{ '--fd': '1.264s' } as CSSProperties} />
+
+                  {/* Heute: der freie Betrag aus dem Cashflow */}
+                  <rect className="st-bar base" x="48" y={CF_FREI_Y} width="44" height={FREI * CF_K}
+                    style={{ '--fd': '1.896s' } as CSSProperties} />
+                  <text className="st-cftext amount" x="70" y={CF_FREI_Y - 6}
+                    style={{ '--fd': '2.212s' } as CSSProperties}>{fmt(FREI)} €</text>
+                  <text className="st-cftext phase" x="70" y="124"
+                    style={{ '--fd': '1.896s' } as CSSProperties}>Heute</text>
+
+                  {/* Mit Strategie: dieselbe Basis, darauf die vier Hebel */}
+                  <line className="st-ghost" x1="92" y1={CF_FREI_Y} x2="138" y2={CF_FREI_Y}
+                    style={{ '--fd': '2.212s' } as CSSProperties} />
+                  <rect className="st-bar base" x="138" y={CF_FREI_Y} width="44" height={FREI * CF_K}
+                    style={{ '--fd': '2.212s' } as CSSProperties} />
+                  {SEGS.map(seg => (
                     <rect
-                      key={'s' + i}
-                      className="st-bar save"
-                      x={18 + i * 12} y={CF_BASE - h} width="8" height={h}
-                      style={{ '--fd': (2.528 + i * 0.079).toFixed(3) + 's' } as CSSProperties}
+                      key={seg.key}
+                      className="st-bar st-seg"
+                      x="138" y={seg.y} width="44" height={seg.h}
+                      style={{ '--fd': seg.fd + 's', '--c': seg.color } as CSSProperties}
                     />
                   ))}
-                  {/* Kapitalkurve über die ganze Lebenslinie */}
-                  <path
-                    className="st-curve"
-                    d="M14 102 C 52 96, 92 82, 122 64 C 132 58, 138 55, 143 54
-                       C 156 54, 176 64, 222 86"
-                    pathLength={1}
-                  />
-                  {/* Renteneintritt: der Umschlagpunkt */}
-                  <line className="st-mark" x1="143" y1="26" x2="143" y2={CF_BASE} />
-                  <circle className="st-ping" cx="143" cy="54" r="10" pathLength={1} />
-                  <text className="st-cftext mark" x="143" y="18">Renteneintritt</text>
-                  {/* Rentenphase: Entnahmen, warm wie der Gewinner-Tarif */}
-                  {DRAW_H.map((h, i) => (
-                    <rect
-                      key={'d' + i}
-                      className="st-bar draw"
-                      x={148 + i * 12} y={CF_BASE - h} width="8" height={h}
-                      style={{ '--fd': (4.74 + i * 0.079).toFixed(3) + 's' } as CSSProperties}
-                    />
-                  ))}
-                  {/* Phasen-Beschriftung */}
-                  <text className="st-cftext phase" x="72" y="122">Ansparphase</text>
-                  <text className="st-cftext phase warm" x="184" y="122">Rentenphase</text>
+                  <circle className="st-ping" cx="160" cy={CF_TOP} r="10"
+                    style={{ '--fd': '5.056s' } as CSSProperties} />
+                  <text className="st-cftext amount gold" x="160" y={CF_TOP - 6}
+                    style={{ '--fd': '5.056s' } as CSSProperties}>{fmt(FREI + GAIN)} €</text>
+                  <text className="st-cftext delta" x="205" y={(CF_TOP + CF_FREI_Y) / 2 + 3}
+                    style={{ '--fd': '5.688s' } as CSSProperties}>+{fmt(GAIN)} €</text>
+                  <text className="st-cftext phase warm" x="160" y="124"
+                    style={{ '--fd': '2.212s' } as CSSProperties}>Mit Strategie</text>
                 </svg>
               </figure>
 
-              {/* Absicherung: drei Deckungsbalken füllen sich */}
+              {/* Vier Hebel: jede Zeile füllt sich im Takt ihres Segments */}
               <figure className="st-card" style={{ '--fd': '.948s' } as CSSProperties}>
                 <figcaption className="st-ctitle">
-                  <span className="st-tile sm"><svg viewBox="0 0 16 16"><use href="#g-shield" /></svg></span>
-                  Absicherung
+                  <span className="st-tile sm"><svg viewBox="0 0 16 16"><use href="#g-org" /></svg></span>
+                  Vier Hebel
                 </figcaption>
                 <div className="st-covers">
-                  {[
-                    { label: 'Berufsunfähigkeit', w: 0.9, d: '1.264s' },
-                    { label: 'Haftpflicht', w: 0.74, d: '1.422s' },
-                    { label: 'Existenz', w: 0.58, d: '1.580s' },
-                  ].map(r => (
-                    <div className="st-cover" key={r.label}>
-                      <span className="st-covlabel">{r.label}</span>
-                      <span className="st-track">
-                        <span className="st-fill" style={{ '--w': r.w, '--fd': r.d } as CSSProperties} />
+                  {HEBEL.map((h, i) => (
+                    <div className="st-cover" key={h.key}>
+                      <span className="st-covhead">
+                        <span className="st-tile sm"><svg viewBox="0 0 16 16"><use href={h.glyph} /></svg></span>
+                        <span className="st-covlabel">{h.label}</span>
+                      </span>
+                      <span className="st-covrow">
+                        <span className="st-track">
+                          <span
+                            className="st-fill"
+                            style={{ '--w': h.plus / HEBEL[0].plus, '--fd': SEGS[i].fd + 's', '--c': h.color } as CSSProperties}
+                          />
+                        </span>
+                        <span className="st-covamt" style={{ '--fd': SEGS[i].fd + 's' } as CSSProperties}>
+                          +{fmt(h.plus)} €
+                        </span>
                       </span>
                     </div>
                   ))}
                 </div>
-              </figure>
-
-              {/* Vermögensaufbau: die Sparlinie zeichnet sich */}
-              <figure className="st-card" style={{ '--fd': '1.264s' } as CSSProperties}>
-                <figcaption className="st-ctitle">
-                  <span className="st-tile sm"><svg viewBox="0 0 16 16"><use href="#g-chart" /></svg></span>
-                  Vermögensaufbau
-                </figcaption>
-                <svg className="st-spark" viewBox="0 0 130 42" aria-hidden="true">
-                  <line className="st-axis" x1="4" y1="38" x2="126" y2="38" />
-                  <path
-                    className="st-sparkline"
-                    d="M4 34 L22 30 L38 32 L56 24 L72 26 L90 16 L108 12 L126 6"
-                    pathLength={1}
-                  />
-                </svg>
               </figure>
             </div>
           </section>
