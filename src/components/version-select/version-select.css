@@ -12,10 +12,18 @@ body{background:var(--ink-deep);color:var(--cream);cursor:pointer;
   font-family:var(--font-inter),Inter,system-ui,-apple-system,sans-serif;
   -webkit-font-smoothing:antialiased}
 
-/* Die Seite blendet sich beim Mount per tx() ein */
-#vs-root{position:fixed;inset:0;overflow:hidden;opacity:0}
+/* Die Seite blendet sich beim Mount per tx() ein; der Verlauf ist zugleich
+   der Grund der Letterbox-Bänder */
+#vs-root{position:fixed;inset:0;overflow:hidden;opacity:0;
+  background:radial-gradient(115% 95% at 50% 40%, #0D2239 0%, var(--ink) 48%, var(--ink-deep) 100%)}
 
-/* Vollbild-Hintergrund, kein Bühnen-Fit. Der Verlauf unter dem Bild ist
+/* Feste 1600×900-Bühne im Contain-Fit (useStageFit): das Showroom-Foto
+   bleibt auf jedem Bildschirm vollständig sichtbar — Letterbox statt
+   Beschnitt. Alle Maße darunter sind Bühnen-Pixel (keine vw/vh). */
+#vs-stage{position:absolute;left:50%;top:50%;width:1600px;height:900px;
+  transform:translate(-50%,-50%);transform-origin:50% 50%;overflow:hidden}
+
+/* Hintergrund füllt die 16:9-Bühne exakt. Der Verlauf unter dem Bild ist
    zugleich der Nothalt bei fehlendem Asset. */
 #vs-bg{position:absolute;inset:0;
   background:url('/background2.png') center/cover no-repeat,
@@ -32,25 +40,25 @@ body{background:var(--ink-deep);color:var(--cream);cursor:pointer;
 /* Panels liegen übereinander; visibility nimmt inaktive Panels aus
    Lesereihenfolge und Tab-Folge */
 .vs-panel{grid-area:1/1;visibility:hidden;opacity:0;
-  width:min(720px,86vw);
+  width:720px;
   transition:opacity .632s var(--ease),visibility 0s .632s}
 .vs-panel.on{visibility:visible;opacity:1;
   transition:opacity 1.264s var(--ease),visibility 0s}
 /* Die Dioramen stehen auf der Tischplatte: Oberkante unter dem Wand-Logo,
    Fußpunkte auf der Platte, der Titel an der vorderen Kante im Lampenlicht */
-.vs-panel.wide{width:min(920px,94vw);place-self:start center;margin-top:41vh}
+.vs-panel.wide{width:920px;place-self:start center;margin-top:337px}   /* Fußpunkte auf der Platte, Titel auf der Tischfläche */
 /* Schritt 2 sitzt 88px höher: sein Titel liegt damit auf derselben
    Tischlinie wie „Der ganze Markt, gescannt." — die Maschine rückt
    relativ zum Titel entsprechend mit nach oben */
-.vs-panel.wide.p2{margin-top:calc(41vh - 88px)}
+.vs-panel.wide.p2{margin-top:249px}
 /* Die Maschine rückt ein Stück tiefer auf die Platte; der Titel bleibt
    auf der gemeinsamen Tischlinie (30px − 24px Ausgleich) */
 /* Der Auslauf zielt auf den gravierten Kreis der Tischmitte: der liegt
    in Background2 bei 49,2 % der Bildbreite, knapp links der Mitte —
-   die Bühne rückt proportional mit (cover: Bildbreite = Viewportbreite) */
-.p2 .vi-stage2{margin-top:24px;transform:translate(-0.78vw,20px)}
+   0,78 % von 1600 Bühnen-Pixeln ≈ 12 px */
+.p2 .vi-stage2{margin-top:24px;transform:translate(-12px,20px)}
 /* Der Schriftzug rückt mit der Maschine — der Titel bleibt auf der Linie */
-.p2 .vi-finale{transform:translate(-0.78vw,20px)}
+.p2 .vi-finale{transform:translate(-12px,20px)}
 .p2 .vi-ttitle{margin-top:49px}
 
 /* Gestaffelte Auftritte innerhalb eines Panels (Takt-Unterteilungen) */
@@ -64,12 +72,13 @@ span.vs-rise{display:inline-block}
 .vs-panel.on .d3{transition-delay:.632s}
 .vs-panel.on .d4{transition-delay:.79s}
 .vs-panel.on .d5{transition-delay:.948s}
+.vs-panel.on .d6{transition-delay:1.106s}
 
 .vs-h1{font-family:'Selecta',var(--font-display),'Schibsted Grotesk',Inter,system-ui,sans-serif;
-  font-weight:600;font-size:clamp(30px,4vw,44px);line-height:1.1;
+  font-weight:600;font-size:44px;line-height:1.1;
   letter-spacing:-.022em;margin:0 0 16px;text-wrap:balance;
   text-shadow:0 1px 12px rgba(3,9,17,.55)}
-.vs-sub{font-size:clamp(14px,1.3vw,16px);line-height:1.55;color:var(--muted);
+.vs-sub{font-size:16px;line-height:1.55;color:var(--muted);
   margin:0 auto;max-width:560px;text-shadow:0 1px 8px rgba(3,9,17,.5)}
 .vs-kicker{font-size:13px;font-weight:500;letter-spacing:.24em;text-transform:uppercase;
   color:#9CC6FA;margin:0 0 26px;text-shadow:0 1px 10px rgba(3,9,17,.5)}
@@ -80,7 +89,7 @@ span.vs-rise{display:inline-block}
 
 /* Der Titel liegt an der VORDEREN Tischkante, wo das Lampenlicht aufsetzt:
    perspektivisch gekippt, im Licht des Leuchtstreifens */
-.vi-ttitle{margin:56px 0 0;font-size:clamp(22px,2.8vw,34px);
+.vi-ttitle{margin:56px 0 0;font-size:34px;
   color:#CDE7FF;text-wrap:balance;
   text-shadow:0 0 14px var(--holo-glow),0 0 42px rgba(95,163,245,.35),
               0 1px 2px rgba(3,9,17,.65);
@@ -245,7 +254,7 @@ span.vs-rise{display:inline-block}
 .vs-pill:hover .vs-ico{background:rgba(245,250,255,.17)}
 
 /* ---------- Fußzeile: Fortschritt der Kurzfassung ---------- */
-.vs-meta{position:fixed;right:96px;bottom:22px;z-index:3;opacity:0;
+.vs-meta{position:absolute;right:96px;bottom:22px;z-index:3;opacity:0;
   font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);
   font-variant-numeric:tabular-nums;padding:9px 16px;border-radius:999px;
   background:linear-gradient(180deg,rgba(245,250,255,.07),rgba(245,250,255,.025));
