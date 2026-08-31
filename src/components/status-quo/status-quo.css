@@ -205,7 +205,7 @@ body{background:var(--ink-deep);color:var(--cream);cursor:pointer;
 /* … und bei jeder Aktualisierung einmal ausschlägt */
 .sq-live.burst::after{content:'';position:absolute;inset:-2px;border-radius:50%;
   box-shadow:0 0 0 1px rgba(158,209,255,.8);opacity:0;
-  animation:sqBurst .632s var(--spring) 2.528s both}
+  animation:sqBurst .632s var(--spring) 1.264s both}
 @keyframes sqBurst{0%{opacity:.9;transform:scale(.6)}100%{opacity:0;transform:scale(2.8)}}
 .sq-alabel{font-size:10px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;
   color:rgba(230,244,255,.9);white-space:nowrap}
@@ -213,8 +213,8 @@ body{background:var(--ink-deep);color:var(--cream);cursor:pointer;
 .sq-checked{margin-left:auto;display:grid;text-align:right}
 .sq-checked span{grid-area:1/1;font-size:8.5px;font-weight:500;letter-spacing:.1em;
   text-transform:uppercase;color:var(--muted);white-space:nowrap;
-  opacity:0;transition:opacity .632s var(--glide) 3.792s}
-.sq-checked span.on{opacity:1;transition-delay:var(--fd,3.792s)}
+  opacity:0;transition:opacity .632s var(--glide) 1.896s}
+.sq-checked span.on{opacity:1;transition-delay:var(--fd,1.896s)}
 
 .sq-sub{margin:0 0 8px;font-size:9.5px;font-weight:500;letter-spacing:.16em;text-transform:uppercase;
   color:var(--muted);opacity:0;transition:opacity .632s var(--glide) var(--fd,0s)}
@@ -241,7 +241,7 @@ body{background:var(--ink-deep);color:var(--cream);cursor:pointer;
 /* Aufwärts-Marke: warm, erscheint nur bei Zuwachs */
 .sq-up{font-size:11px;font-weight:700;color:#F5C866;text-align:center;
   opacity:0;transform:translateY(4px);
-  transition:opacity .632s var(--glide) 3.16s,transform .632s var(--spring) 3.16s}
+  transition:opacity .632s var(--glide) 1.896s,transform .632s var(--spring) 1.896s}
 .sq-brow.up .sq-up{opacity:1;transform:none}
 
 /* Protokoll: die Aktualisierungen stapeln sich (Zeilen im 26-px-Raster ab y 254) */
@@ -254,7 +254,7 @@ body{background:var(--ink-deep);color:var(--cream);cursor:pointer;
   font-size:9.5px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;
   color:rgba(230,244,255,.9);white-space:nowrap;
   opacity:0;transform:translateY(6px);
-  transition:opacity .632s var(--glide) 3.792s,transform .632s var(--spring) 3.792s}
+  transition:opacity .632s var(--glide) 1.896s,transform .632s var(--spring) 1.896s}
 .sq-lrow.on{opacity:1;transform:none}
 
 /* ============================================================

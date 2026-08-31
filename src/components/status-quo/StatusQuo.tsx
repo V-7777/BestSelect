@@ -26,6 +26,13 @@
    Bühne 1600×900 im Contain-Fit: Bühnen-Koordinaten sind
    Foto-Koordinaten ×0.625. Konventionen wie Strategie/BestSelect:
    go()/lock()/settle(), 632-ms-Raster, ?step-Spiegel in der URL.
+   Autopilot: die Schritte spielen IMMER von selbst — Verweildauer je
+   Schritt = Sperre + HALBE Lesezeit der Texte (~180 WPM), aufgerundet
+   auf ganze Takte (dwellFor). Schritt nach Schritt: jede Choreografie
+   landet komplett in ~3 Takten (Karte, Hebel, Protokoll, Prüfvermerk),
+   bevor der nächste Schritt beginnt — nichts vom alten Schritt ragt in
+   den neuen. Klick und Pfeiltasten springen nur vor/zurück, der
+   Autopilot plant vom neuen Schritt aus weiter; am Kapitelende hält er.
    Zustandsregel: JEDE Klasse leitet sich aus dem Schritt s ab (s >= k,
    s === k) — nie aus Sequenzen. So rendern Deep-Link, Zurück und Esc
    immer den vollständigen Stand. */
@@ -119,9 +126,30 @@ interface SqView {
 function lockFor(n: number, dir: number): number {
   if (dir < 0) return BEAT * 2;              /* 1264: längster Rück-Übergang */
   if (n === 1) return BEAT * 5;              /* 3160: Schirme, Linie, Heute, Hebel, Karte */
-  if (n >= 2 && n <= 5) return BEAT * 7;     /* 4424: Linie → Knoten → Karte → Hebel → Protokoll */
+  if (n >= 2 && n <= 5) return BEAT * 5;     /* 3160: Linie → Knoten → Karte → Hebel → Protokoll */
   if (n === SQ_LAST) return BEAT * 3;        /* 1896: Dimmen, Linie läuft weiter, Schlusskarte */
   return BEAT * 2;                           /* Intro: 1264 */
+}
+
+/* Autopilot: Verweildauer je Schritt = Choreografie-Sperre + Lesezeit der
+   Texte, die der Schritt zeigt (Karte; Schritt 1 zusätzlich der komplette
+   Berater-Schirm, danach je eine neue Protokoll-/Prüfzeile), bei ~180
+   Wörtern pro Minute — aufgerundet auf ganze 632-ms-Takte. Neue Texte
+   takten sich damit von selbst. */
+const WPM = 180;
+const PANEL_WORDS = 16;   /* Berater-Schirm beim ersten Aufbau (Schritt 1) */
+const LOG_WORDS = 3;      /* je Folgeschritt: neue Protokoll- + Prüfzeile */
+function dwellFor(step: number): number {
+  if (step === 0) return BEAT * 2;            /* Intro: kurz wirken lassen */
+  if (step >= SQ_LAST) return 0;              /* Kapitelende: stehen bleiben */
+  const c = CARDS[step - 1];
+  const words = (c.tag + ' ' + c.title + ' ' + c.rows.join(' ')).split(/\s+/).length
+    + (step === 1 ? PANEL_WORDS : LOG_WORDS);
+  const read = (words * 60000) / WPM;
+  /* Halbes Tempo (der Vortrag spricht mit): Sperre + halbe Lesezeit,
+     mindestens ein Takt Luft nach der Choreografie */
+  const beats = Math.ceil((lockFor(step, 1) + read) / 2 / BEAT);
+  return Math.max(beats, lockFor(step, 1) / BEAT + 1) * BEAT;
 }
 
 /* Evidenz je Schritt für Screenreader — die Schirme sind aria-hidden */
@@ -150,6 +178,8 @@ export default function StatusQuo() {
   const viewRef = useRef(view);
   viewRef.current = view;
   const busyRef = useRef(false);
+  /* Autopilot: Timer je Schritt */
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
 
@@ -246,6 +276,21 @@ export default function StatusQuo() {
     window.history.replaceState(null, '', url);
   }, [view.step, view.n]);
 
+  /* Autopilot: nach jedem Schrittwechsel den nächsten planen — die
+     Verweildauer deckt Sperre + Lesezeit. Klicks und Tasten springen nur;
+     der Wechsel räumt den alten Timer ab und plant vom neuen Schritt neu */
+  useEffect(() => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    if (view.step >= SQ_LAST) return;
+    const fire = () => {
+      /* Nie in eine laufende Sperre feuern (Kette bliebe sonst stehen) */
+      if (busyRef.current) { timerRef.current = setTimeout(fire, BEAT); return; }
+      go(viewRef.current.step + 1);
+    };
+    timerRef.current = setTimeout(fire, dwellFor(view.step));
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+  }, [view, go]);
+
   /* Sofort-Render: für einen Frame alle CSS-Übergänge kappen */
   useEffect(() => {
     if (!view.inst) return;
@@ -341,7 +386,7 @@ export default function StatusQuo() {
                 className={'sq-node' + (s >= k + 1 ? ' on' : '') + (s === k + 1 ? ' now' : '')}
                 style={{
                   left: NODE_X[k] + 'px', top: LINE_Y + 'px',
-                  '--fd': k === 0 ? '1.264s' : '.79s',
+                  '--fd': k === 0 ? '1.264s' : '.632s',
                 } as CSSProperties}
               >
                 <span className="sq-ntile"><svg viewBox="0 0 16 16"><use href={e.glyph} /></svg></span>
@@ -354,14 +399,14 @@ export default function StatusQuo() {
                 <article
                   key={c.tag}
                   className={'sq-card' + (s === k + 1 ? ' on' : '')}
-                  style={{ '--fd': k === 0 ? '1.896s' : '1.264s' } as CSSProperties}
+                  style={{ '--fd': k === 0 ? '1.896s' : '.632s' } as CSSProperties}
                 >
                   <span className="sq-tag">{c.tag}</span>
                   <span className="sq-title">{c.title}</span>
                   <div className="sq-rows">
                     {c.rows.map((r, i) => (
                       <span key={r} className="sq-crow"
-                        style={{ '--fd': (k === 0 ? 2.212 : 1.58) + i * 0.158 + 's' } as CSSProperties}>
+                        style={{ '--fd': (k === 0 ? 2.212 : 1.106) + i * 0.158 + 's' } as CSSProperties}>
                         <span className="sq-ntile sm"><svg viewBox="0 0 16 16"><use href="#g-check" /></svg></span>
                         {r}
                       </span>
@@ -399,7 +444,7 @@ export default function StatusQuo() {
               <span className="sq-checked">
                 {CHECKED.map((t, i) => (
                   <span key={t} className={ev === i ? 'on' : ''}
-                    style={{ '--fd': i === 0 ? '.632s' : '3.792s' } as CSSProperties}>
+                    style={{ '--fd': i === 0 ? '.632s' : '1.896s' } as CSSProperties}>
                     Geprüft · {t}
                   </span>
                 ))}
@@ -422,7 +467,7 @@ export default function StatusQuo() {
                         className="sq-fill"
                         style={{
                           '--w': w,
-                          '--fd': ((s === 1 ? 1.58 : 2.528) + i * 0.158).toFixed(3) + 's',
+                          '--fd': ((s === 1 ? 1.58 : 1.264) + i * 0.158).toFixed(3) + 's',
                         } as CSSProperties}
                       />
                     </span>
