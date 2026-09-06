@@ -174,6 +174,9 @@ function sqEvidence(step: number): string {
 export default function StatusQuo() {
   const [view, setView] = useState<SqView>({ step: 0, inst: true, dir: 1, n: 0 });
   const [debug, setDebug] = useState(false);
+  /* Der Autopilot läuft nur noch auf Knopfdruck. Ohne ihn führt der Klick
+     wie in allen anderen Kapiteln Schritt für Schritt weiter */
+  const [playing, setPlaying] = useState(false);
   const router = useRouter();
   const viewRef = useRef(view);
   viewRef.current = view;
@@ -206,6 +209,14 @@ export default function StatusQuo() {
       tx(viewportRef.current, { opacity: 1 }, { duration: 1.264 });
     }, BEAT);
   }, [lock]);
+
+  /* Play/Pause. Vom Kapitelende aus fängt er wieder vorne an, sonst läuft
+     er ab dem Schritt weiter, auf dem gerade gehalten wird */
+  const togglePlay = useCallback(() => {
+    if (playing && viewRef.current.step < SQ_LAST) { setPlaying(false); return; }
+    if (viewRef.current.step >= SQ_LAST) replay();
+    setPlaying(true);
+  }, [playing, replay]);
 
   const go = useCallback((n: number) => {
     if (busyRef.current) return;
@@ -278,10 +289,13 @@ export default function StatusQuo() {
 
   /* Autopilot: nach jedem Schrittwechsel den nächsten planen — die
      Verweildauer deckt Sperre + Lesezeit. Klicks und Tasten springen nur;
-     der Wechsel räumt den alten Timer ab und plant vom neuen Schritt neu */
+     der Wechsel räumt den alten Timer ab und plant vom neuen Schritt neu.
+     Läuft nur, solange Play eingeschaltet ist, und schaltet sich am
+     Kapitelende selbst wieder aus */
   useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
-    if (view.step >= SQ_LAST) return;
+    if (!playing) return;
+    if (view.step >= SQ_LAST) return;   /* Kapitelende: hält von selbst */
     const fire = () => {
       /* Nie in eine laufende Sperre feuern (Kette bliebe sonst stehen) */
       if (busyRef.current) { timerRef.current = setTimeout(fire, BEAT); return; }
@@ -289,7 +303,7 @@ export default function StatusQuo() {
     };
     timerRef.current = setTimeout(fire, dwellFor(view.step));
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
-  }, [view, go]);
+  }, [view, go, playing]);
 
   /* Sofort-Render: für einen Frame alle CSS-Übergänge kappen */
   useEffect(() => {
@@ -496,6 +510,21 @@ export default function StatusQuo() {
 
         {/* Tischkante: keine Tischtexte — das Bild spricht; am Ende das
             Kapitelende-Paar, das alle Kapitel teilen: Nochmal · Zurück zur Übersicht */}
+        {/* Play: spielt das Kapitel im Takt durch, statt es Schritt für
+            Schritt zu klicken. Liegt der Fortschrittsanzeige gegenüber */}
+        <button type="button" className="sq-pill sq-play"
+          aria-pressed={playing && s < SQ_LAST}
+          onClick={e => { e.stopPropagation(); togglePlay(); }}>
+          <span>{playing && s < SQ_LAST ? 'Pause' : 'Abspielen'}</span>
+          <span className="sq-ico" aria-hidden="true">
+            <svg viewBox="0 0 16 16" fill="currentColor">
+              {playing && s < SQ_LAST
+                ? <path d="M5 3h2.2v10H5zM8.8 3H11v10H8.8z" />
+                : <path d="M5.5 3.4 12 8l-6.5 4.6z" />}
+            </svg>
+          </span>
+        </button>
+
         <main id="sq-captions">
           <section className={'sq-panelc' + (s === SQ_LAST ? ' on' : '')}>
             <div className="sq-pills" onClick={e => e.stopPropagation()}>

@@ -162,6 +162,15 @@ function lockFor(n: number, dir: number): number {
   return BEAT * 2;                 /* Intro / Kapitelende: 1264 */
 }
 
+/* Autopilot: Verweildauer je Schritt = Choreografie-Sperre + drei Takte
+   Lesezeit, damit der Schirm nach dem Aufbau noch stehen bleibt, bevor der
+   nächste Schritt übernimmt. Am Kapitelende hält er. */
+function dwellFor(step: number): number {
+  if (step === 0) return BEAT * 2;       /* Intro: kurz wirken lassen */
+  if (step >= ST_LAST) return 0;         /* Kapitelende: stehen bleiben */
+  return lockFor(step, 1) + BEAT * 3;
+}
+
 /* Evidenz je Schritt für Screenreader — der Schirm ist aria-hidden */
 function stEvidence(step: number): string {
   if (step === 1) return 'Schritt 1 von 4, Dein Weg: Zuerst dein Ziel, daraus die Ist-Situation '
@@ -191,10 +200,15 @@ export default function Strategie() {
      gleich (Determinismus-Prinzip) */
   const [spin, setSpin] = useState(0);
   const [debug, setDebug] = useState(false);
+  /* Der Autopilot läuft nur auf Knopfdruck. Ohne ihn führt der Klick
+     wie bisher Schritt für Schritt weiter */
+  const [playing, setPlaying] = useState(false);
   const router = useRouter();
   const viewRef = useRef(view);
   viewRef.current = view;
   const busyRef = useRef(false);
+  /* Autopilot: Timer je Schritt */
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
 
@@ -221,6 +235,14 @@ export default function Strategie() {
       tx(viewportRef.current, { opacity: 1 }, { duration: 1.264 });
     }, BEAT);
   }, [lock]);
+
+  /* Play/Pause. Vom Kapitelende aus fängt er wieder vorne an, sonst läuft
+     er ab dem Schritt weiter, auf dem gerade gehalten wird */
+  const togglePlay = useCallback(() => {
+    if (playing && viewRef.current.step < ST_LAST) { setPlaying(false); return; }
+    if (viewRef.current.step >= ST_LAST) replay();
+    setPlaying(true);
+  }, [playing, replay]);
 
   const go = useCallback((n: number) => {
     if (busyRef.current) return;
@@ -295,6 +317,24 @@ export default function Strategie() {
   useEffect(() => {
     if (view.step !== 2) setSpin(0);
   }, [view.step]);
+
+  /* Autopilot: nach jedem Schrittwechsel den nächsten planen — die
+     Verweildauer deckt Sperre + Lesezeit. Klicks und Tasten springen nur;
+     der Wechsel räumt den alten Timer ab und plant vom neuen Schritt neu.
+     Läuft nur, solange Play eingeschaltet ist, und schaltet sich am
+     Kapitelende selbst wieder aus */
+  useEffect(() => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    if (!playing) return;
+    if (view.step >= ST_LAST) return;   /* Kapitelende: hält von selbst */
+    const fire = () => {
+      /* Nie in eine laufende Sperre feuern (Kette bliebe sonst stehen) */
+      if (busyRef.current) { timerRef.current = setTimeout(fire, BEAT); return; }
+      go(viewRef.current.step + 1);
+    };
+    timerRef.current = setTimeout(fire, dwellFor(view.step));
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+  }, [view, go, playing]);
 
   /* Sofort-Render: für einen Frame alle CSS-Übergänge kappen */
   useEffect(() => {
@@ -565,6 +605,21 @@ export default function Strategie() {
         </div>
 
         {/* Tischkante: Titel je Schritt im Lampenlicht, am Ende die Pillen */}
+        {/* Play: spielt das Kapitel im Takt durch, statt es Schritt für
+            Schritt zu klicken. Liegt der Fortschrittsanzeige gegenüber */}
+        <button type="button" className="st-pill st-play"
+          aria-pressed={playing && s < ST_LAST}
+          onClick={e => { e.stopPropagation(); togglePlay(); }}>
+          <span>{playing && s < ST_LAST ? 'Pause' : 'Abspielen'}</span>
+          <span className="st-ico" aria-hidden="true">
+            <svg viewBox="0 0 16 16" fill="currentColor">
+              {playing && s < ST_LAST
+                ? <path d="M5 3h2.2v10H5zM8.8 3H11v10H8.8z" />
+                : <path d="M5.5 3.4 12 8l-6.5 4.6z" />}
+            </svg>
+          </span>
+        </button>
+
         <main id="st-captions">
           {/* Keine Tischtexte: das Bild spricht — nur am Ende steht das
               Kapitelende-Paar, das alle Kapitel teilen: Nochmal · Zurück

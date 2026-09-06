@@ -457,7 +457,7 @@ export default function VersionSelect() {
               <span className="vi-tag">Best Select</span>
             </div>
           </div>
-          <h1 className="vs-h1 vi-ttitle">Annahme.</h1>
+          <h1 className="vs-h1 vi-ttitle">Annahme</h1>
         </section>
 
         {/* Kapitelende: dasselbe Paar wie in allen Kapiteln */}

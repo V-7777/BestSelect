@@ -333,3 +333,6 @@ body{background:var(--ink-deep);color:var(--cream);cursor:pointer;
     animation-duration:.01ms !important;animation-delay:0ms !important;
     animation-iteration-count:1 !important}
 }
+
+/* ---------- Play: Autopilot ein/aus, gegenüber der Fortschrittsanzeige ---------- */
+.sq-play{position:absolute;left:96px;bottom:22px;z-index:3}
